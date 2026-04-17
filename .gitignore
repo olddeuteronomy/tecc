@@ -1,0 +1,7 @@
+
+# Exclude binaries
+lib/
+build/
+
+# MacOS Cache
+.DS_Store

@@ -1,0 +1,9 @@
+CompileFlags:                   # Tweak the parse settings
+  Add: [-xc,
+       -std=c17,
+       -Wall,
+       -Wextra,
+       -I/home/magnolia/workspace/devel,
+       -DTECC_TRACE_ON=1]
+  # Remove: [-W*]               # DO NOT strip all other warning-related flags
+  Compiler: clang               # Change argv[0] of compile flags to `clang'
