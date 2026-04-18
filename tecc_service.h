@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-17 15:41:43 by magnolia>
+// Time-stamp: <Last changed 2026-04-18 15:16:57 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -20,6 +20,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #define TECC_SERVICE_H
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
+#include "tecc/tecc_service_worker.h"
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_rpc.h"
 
@@ -27,9 +28,13 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 extern "C" {
 #endif
 
+// Forward references.
+typedef struct tagTecDaemon TecDaemon;
+typedef TecDaemon* TecDaemonPtr;
+
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 *
-* A generic, non-thread-safe service with `start`/`shutdown` semantics
+*        A generic service with `start`/`shutdown` semantics
 *         and `request`-`reply` RPC-style message handling.
 *
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -37,15 +42,23 @@ extern "C" {
 typedef struct tagTecService TecService;
 typedef TecService* TecServicePtr;
 
+typedef void (*TecServiceStartFunc)(TecServicePtr, TecSignalPtr, int*) ;
+typedef void (*TecServiceShutdownFunc)(TecServicePtr, TecSignalPtr);
+typedef int (*TecServiceFunc)(TecServicePtr, TecRequestPtr, TecReplyPtr);
+
 typedef struct tagTecService {
+    // A pointer to the owning Daemon object (may be NULL).
+    TecDaemonPtr owner;
+    // Status; 0 if OK.
+    int error;
     // Starts the service and signals completion.
     // In long-running services, this function may not return
     // until `shutdown` is invoked from another thread.
-    void (*start)(TecServicePtr self, TecSignalPtr sig_started, int* error);
+    TecServiceStartFunc start;
     // Stops the service and signals termination.
-    void (*shutdown)(TecServicePtr self, TecSignalPtr sig_stopped);
+    TecServiceShutdownFunc shutdown;
     // Process an RPC-style request.
-    int (*process)(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply);
+    TecServiceFunc process;
     // Destructor. Default is NULL.
     void (*done)(TecServicePtr self);
 } TecService;
@@ -59,16 +72,26 @@ typedef struct tagTecService {
 #define TecService_ptr(self) ((TecServicePtr)(self))
 
 TECC_API void TecService_init_(TecServicePtr self);
-#define TecSerice_init(self) TecService_init(TecService_ptr(self))
+#define TecSerice_init(self) TecService_init_(TecService_ptr(self))
+
+#define TecService_set_start(self, start_func)\
+    TecService_ptr(self)->start = (start_func)
 
 #define TecService_start(self, sig_started, error)\
-    TecService_ptr(self)->start(TecService_ptr(self), sig_started, error)
+    TecService_ptr(self)->start(TecService_ptr(self), (sig_started), (error))
 
 #define TecService_shutdown(self, sig_started)\
-    TecService_ptr(self)->shutdown(TecService_ptr(self), sig_stopped)
+    TecService_ptr(self)->shutdown(TecService_ptr(self), (sig_stopped))
+
+#define TecService_set_shutdown(self, shutdown_func)\
+    TecService_ptr(self)->shutdown = (shutdown_func)
 
 #define TecService_process(self, request, reply)\
-    TecService_ptr(self)->process(TecService_ptr(self), request, reply)
+    TecService_ptr(self)->process(TecService_ptr(self), (request), (reply))
+
+#define TecService_set_process(self, proc_func)\
+    TecService_ptr(self)->process = (proc_func)
+
 
 #define TecService_done_func(self) (TecService_ptr(self)->done)
 

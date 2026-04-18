@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-17 16:28:42 by magnolia>
+// Time-stamp: <Last changed 2026-04-18 15:50:16 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -21,12 +21,18 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #define TECC_SERVICE_WORKER_H
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
+#include "tecc/tecc_daemon.h"
+#include "tecc/tecc_signal.h"
+#include "tecc/tecc_thread.h"
 #include "tecc/tecc_worker.h"
-#include "tecc/tecc_service.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// Forward references.
+typedef struct tagTecService TecService;
+typedef TecService* TecServicePtr;
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 *
@@ -35,13 +41,36 @@ extern "C" {
 *
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-
 typedef struct tagTecServiceWorker TecServiceWorker;
-typedef TecServiceWorker TecServiceWorkerPtr;
+typedef TecServiceWorker* TecServiceWorkerPtr;
 
+// inherited from TecWorker
 typedef struct tagTecServiceWorker {
-
+    TecWorker worker;
+    TecServicePtr service;
+    TecSignal sig_started;
+    TecSignal sig_stopped;
+    TecMutex mtx_guard;
+    thrd_start_t service_func; // Service function.
+    TecThread service_thread;  // Service thread.
 } TecServiceWorker;
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*
+*                   TecServiceWorker API
+*
+ *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+#define TecServiceWorker_ptr(ptr) ((TecServiceWorkerPtr)(ptr))
+
+#define TecServiceWorker_init(self, service, hash_table_size)\
+    TecServiceWorker_init_(TecServiceWorker_ptr(self), TecService_ptr(service), (hash_table_size))
+
+// DO NOT CALL IT DIRECTLY!
+TECC_API bool TecServiceWorker_init_(TecServiceWorkerPtr self, TecServicePtr service, size_t hash_table_size);
+
+// FOR CALLING FROM AN INHERITED OBJECT ONLY!
+TECC_API void TecServiceWorker_done_(TecDaemonPtr);
 
 
 #ifdef __cplusplus

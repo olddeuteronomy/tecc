@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-18 15:18:41 by magnolia>
+// Time-stamp: <Last changed 2026-04-18 16:59:12 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -17,38 +17,40 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-#include "tecc/tecc_def.h"
-#include "tecc/tecc_signal.h"
-#include "tecc/tecc_service.h"
+#ifndef TECC_THREAD_H
+#define TECC_THREAD_H
 
+#include <stdbool.h>
+#include <threads.h>
 
-// Does nothing.
-static void start(TecServicePtr self, TecSignalPtr sig_started, int* error) {
-    (void)self;
-    *error = 0;
-    TecSignal_set(sig_started);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct tagTecThread TecThread;
+typedef TecThread* TecThreadPtr;
+
+typedef struct tagTecThread {
+    bool ok;
+    int res;
+    thrd_t t;
+} TecThread;
+
+#define TecThread_create(self, func, arg) do {\
+        (self)->res = thrd_create(&(self)->t, (func), (arg));\
+        (self)->ok = ((self)->res == thrd_success);\
+    } while(0)
+
+#define TecThread_join(self) do {\
+        if ((self)->ok) { thrd_join((self)->t, &((self)->res)); (self)->ok = false; } \
+    } while(0)
+
+#define TecThread_ok(self) ((self)->ok)
+
+#define TecThread_result(self) ((self)->res)
+
+#ifdef __cplusplus
 }
+#endif
 
-// Does nothing.
-static void shutdown(TecServicePtr self, TecSignalPtr sig_stopped) {
-    (void)self;
-    TecSignal_set(sig_stopped);
-}
-
-// Does nothing.
-static int process(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply) {
-    (void)self;
-    (void)request;
-    (void)reply;
-    return -3;
-}
-
-
-TECC_IMPL void TecService_init_(TecServicePtr self) {
-    self->owner = NULL;
-    self->error = 0;
-    self->start = start;
-    self->shutdown = shutdown;
-    self->process = process;
-    self->done = NULL;
-}
+#endif // TECC_THREAD_H

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-17 13:50:06 by magnolia>
+// Time-stamp: <Last changed 2026-04-18 13:11:36 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -152,7 +152,7 @@ static int TecWorker_rpc_(TecDaemonPtr d, TecRequestPtr request, TecReplyPtr rep
 }
 
 
-static void TecWorker_done_(TecDaemonPtr d) {
+TECC_IMPL void TecWorker_done_(TecDaemonPtr d) {
     TecWorkerPtr w = (TecWorkerPtr)d;
     TecSignal_done(&w->sig_running);
     TecSignal_done(&w->sig_terminated);
@@ -172,7 +172,7 @@ static void TecWorker_done_(TecDaemonPtr d) {
 TECC_IMPL bool TecWorker_init(TecWorkerPtr w, size_t hash_table_size) {
     // Initialize the parent.
     TecDaemon_init(TecDaemon_ptr(w));
-    //
+    // Initialize self.
     bool ok = true;
     w->hash_table_size = hash_table_size;
     // Flags

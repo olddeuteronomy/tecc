@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-17 15:20:30 by magnolia>
+// Time-stamp: <Last changed 2026-04-18 13:55:24 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -111,7 +111,7 @@ typedef struct tagTecDaemon {
     if (TecDaemon_done_func(TecDaemon_ptr(self))) TecDaemon_done_func(TecDaemon_ptr(self))(TecDaemon_ptr(self));\
     TecDaemon_done_func(self) = NULL
 
-// FOR CALLING FROM AN INHERITED OBJECT!
+// FOR CALLING FROM AN INHERITED OBJECT ONLY!
 #define TecDaemon_done_(self) ((void)(self))
 
 #ifdef __cplusplus
