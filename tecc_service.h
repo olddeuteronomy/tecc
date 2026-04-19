@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-18 15:16:57 by magnolia>
+// Time-stamp: <Last changed 2026-04-19 03:03:27 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -20,8 +20,9 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #define TECC_SERVICE_H
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
-#include "tecc/tecc_service_worker.h"
 #include "tecc/tecc_signal.h"
+#include "tecc/tecc_map.h"
+#include "tecc/tecc_message.h"
 #include "tecc/tecc_rpc.h"
 
 #ifdef __cplusplus
@@ -34,7 +35,7 @@ typedef TecDaemon* TecDaemonPtr;
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 *
-*        A generic service with `start`/`shutdown` semantics
+*   A generic, thread-safe service with `start`/`shutdown` semantics
 *         and `request`-`reply` RPC-style message handling.
 *
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -42,8 +43,6 @@ typedef TecDaemon* TecDaemonPtr;
 typedef struct tagTecService TecService;
 typedef TecService* TecServicePtr;
 
-typedef void (*TecServiceStartFunc)(TecServicePtr, TecSignalPtr, int*) ;
-typedef void (*TecServiceShutdownFunc)(TecServicePtr, TecSignalPtr);
 typedef int (*TecServiceFunc)(TecServicePtr, TecRequestPtr, TecReplyPtr);
 
 typedef struct tagTecService {
@@ -52,14 +51,18 @@ typedef struct tagTecService {
     // Status; 0 if OK.
     int error;
     // Starts the service and signals completion.
-    // In long-running services, this function may not return
+    // In long-running services like TCP servers, this function may not return
     // until `shutdown` is invoked from another thread.
-    TecServiceStartFunc start;
+    void (*start)(TecServicePtr, TecSignalPtr, int*);
     // Stops the service and signals termination.
-    TecServiceShutdownFunc shutdown;
-    // Process an RPC-style request.
-    TecServiceFunc process;
-    // Destructor. Default is NULL.
+    void (*shutdown)(TecServicePtr, TecSignalPtr);
+    // RPC-style request handlers.
+    TecMap handlers;
+    // Process an RPC request.
+    TecServiceFunc dispatch;
+    // Guard
+    TecMutex mtx_guard;
+    // Destructor.
     void (*done)(TecServicePtr self);
 } TecService;
 
@@ -71,26 +74,15 @@ typedef struct tagTecService {
 
 #define TecService_ptr(self) ((TecServicePtr)(self))
 
-TECC_API void TecService_init_(TecServicePtr self);
-#define TecSerice_init(self) TecService_init_(TecService_ptr(self))
+TECC_API bool TecService_init_(TecServicePtr self, size_t hash_table_size);
+#define TecService_init(self, hash_table_size)\
+    TecService_init_(TecService_ptr(self), hash_table_size)
 
-#define TecService_set_start(self, start_func)\
-    TecService_ptr(self)->start = (start_func)
+// Register an RPC handler.
+#define TecService_register(self, request_type, handler)\
+    TecService_register_(TecService_ptr(self), TecMsg_type(request_type), (TecServiceFunc)(handler))
 
-#define TecService_start(self, sig_started, error)\
-    TecService_ptr(self)->start(TecService_ptr(self), (sig_started), (error))
-
-#define TecService_shutdown(self, sig_started)\
-    TecService_ptr(self)->shutdown(TecService_ptr(self), (sig_stopped))
-
-#define TecService_set_shutdown(self, shutdown_func)\
-    TecService_ptr(self)->shutdown = (shutdown_func)
-
-#define TecService_process(self, request, reply)\
-    TecService_ptr(self)->process(TecService_ptr(self), (request), (reply))
-
-#define TecService_set_process(self, proc_func)\
-    TecService_ptr(self)->process = (proc_func)
+TECC_API void TecService_register_(TecServicePtr self, const char* func_name, TecServiceFunc handler);
 
 
 #define TecService_done_func(self) (TecService_ptr(self)->done)
@@ -98,8 +90,8 @@ TECC_API void TecService_init_(TecServicePtr self);
 #define TecService_done(self)\
     if(TecService_done_func(self)) TecService_done_func(self)(TecService_ptr(self))
 
-// FOR CALLING FROM AN INHERITED OBJECT!
-#define TecService_done_(self) ((void)(self))
+// FOR CALLING FROM AN INHERITED OBJECT ONLY!
+TECC_API void TecService_done_(TecServicePtr);
 
 
 #ifdef __cplusplus

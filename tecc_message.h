@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-17 13:50:07 by magnolia>
+// Time-stamp: <Last changed 2026-04-19 01:58:03 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -75,7 +75,7 @@ typedef void (*TecMsgCallbackFunc)(TecMsgPtr, void*);
 #define TecMsg_done_func(ptr) ((TecMsgPtr)ptr)->done
 
 // Call a destructor then deallocate a message.
-#define TecMsg_free(msg) {\
+#define TecMsg_free(msg) do {\
     if (msg) {\
         if (TecMsg_done_func(msg)) { TecMsg_done_func(msg)((TecMsgPtr)msg); }\
         TECC_FREE(msg);\

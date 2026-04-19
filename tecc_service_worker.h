@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-18 15:50:16 by magnolia>
+// Time-stamp: <Last changed 2026-04-19 03:01:50 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -36,21 +36,20 @@ typedef TecService* TecServicePtr;
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 *
-*        ServiceWorker combines Service and Worker for
-*     synchronous thread-safe request processing in a dedicated thread.
+*          ServiceWorker combines Service and Worker for
+*     synchronous thread-safe RPC processing in a dedicated thread.
 *
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 typedef struct tagTecServiceWorker TecServiceWorker;
 typedef TecServiceWorker* TecServiceWorkerPtr;
 
-// inherited from TecWorker
+// Inherited from TecWorker.
 typedef struct tagTecServiceWorker {
     TecWorker worker;
     TecServicePtr service;
     TecSignal sig_started;
     TecSignal sig_stopped;
-    TecMutex mtx_guard;
     thrd_start_t service_func; // Service function.
     TecThread service_thread;  // Service thread.
 } TecServiceWorker;
@@ -66,7 +65,6 @@ typedef struct tagTecServiceWorker {
 #define TecServiceWorker_init(self, service, hash_table_size)\
     TecServiceWorker_init_(TecServiceWorker_ptr(self), TecService_ptr(service), (hash_table_size))
 
-// DO NOT CALL IT DIRECTLY!
 TECC_API bool TecServiceWorker_init_(TecServiceWorkerPtr self, TecServicePtr service, size_t hash_table_size);
 
 // FOR CALLING FROM AN INHERITED OBJECT ONLY!

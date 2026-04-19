@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-18 15:18:41 by magnolia>
+// Time-stamp: <Last changed 2026-04-19 02:57:02 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -17,38 +17,68 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+#include "tecc/tecc_daemon.h"
 #include "tecc/tecc_def.h"
+#include "tecc/tecc_map.h"
+#include "tecc/tecc_message.h"
 #include "tecc/tecc_signal.h"
+#include <stdatomic.h>
 #include "tecc/tecc_service.h"
 
 
-// Does nothing.
+// Default implementation does nothing.
 static void start(TecServicePtr self, TecSignalPtr sig_started, int* error) {
     (void)self;
     *error = 0;
     TecSignal_set(sig_started);
 }
 
-// Does nothing.
+// Default implementation does nothing.
 static void shutdown(TecServicePtr self, TecSignalPtr sig_stopped) {
     (void)self;
     TecSignal_set(sig_stopped);
 }
 
-// Does nothing.
-static int process(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply) {
-    (void)self;
-    (void)request;
-    (void)reply;
-    return -3;
+
+// Calls a registered RPC handler.
+static int dispatch(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply) {
+    TecMutex_lock(&self->mtx_guard);
+    TecServiceFunc handler = TecMap_get(&self->handlers, TecMsg_tag(request));
+    int error = TECC_ERR_HANDLER_NOT_FOUND;
+    if (handler) {
+        error =  handler(self, request, reply);
+    }
+    TecMutex_unlock(&self->mtx_guard);
+    return error;
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*
+*                        TecService API
+*
+ *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+
+TECC_IMPL void TecService_done_(TecServicePtr self) {
+    TecMap_done(&self->handlers);
+    TecMutex_destroy(&self->mtx_guard);
 }
 
 
-TECC_IMPL void TecService_init_(TecServicePtr self) {
+TECC_IMPL bool TecService_init_(TecServicePtr self, size_t hash_table_size) {
     self->owner = NULL;
     self->error = 0;
     self->start = start;
     self->shutdown = shutdown;
-    self->process = process;
-    self->done = NULL;
+    self->dispatch = dispatch;
+    self->done = TecService_done_;
+    TecMap_init(&self->handlers, hash_table_size);
+    return TecMutex_init(&self->mtx_guard);
+}
+
+
+TECC_API void TecService_register_(TecServicePtr self, const char* func_name, TecServiceFunc handler) {
+    TecMutex_lock(&self->mtx_guard);
+    TecMap_set(&self->handlers, func_name, handler);
+    TecMutex_unlock(&self->mtx_guard);
 }

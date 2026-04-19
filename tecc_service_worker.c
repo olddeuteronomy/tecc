@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-18 16:56:42 by magnolia>
+// Time-stamp: <Last changed 2026-04-19 03:10:23 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -60,30 +60,29 @@ static int on_init(TecWorkerPtr w) {
 static int on_exit(TecWorkerPtr w) {
     TecServiceWorkerPtr self = TecServiceWorker_ptr(w);
     TecThread exit_thread;
-    // Start a thread which stops the Service.
+    // Start a thread which stops the service.
     TecThread_create(&exit_thread, service_shutdown_func, self);
     if (!exit_thread.ok) {
         return exit_thread.res;
     }
     TecThread_join(&exit_thread);
-    // Wait until the Service has stopped.
+    // Wait until the service has stopped.
     TecSignal_wait(&self->sig_stopped);
+    // Finish the service thread.
+    TecThread_join(&self->service_thread);
     return self->service->error;
 }
 
 // Overrides TecWorker's `rpc()` handler to redirect an RPC to the Service.
 static int rpc(TecDaemonPtr d, TecRequestPtr request, TecReplyPtr reply) {
     TecServiceWorkerPtr self = TecServiceWorker_ptr(d);
-    TecMutex_lock(&self->mtx_guard);
-    int error = self->service->process(self->service, request, reply);
-    TecMutex_unlock(&self->mtx_guard);
+    int error = self->service->dispatch(self->service, request, reply);
     return error;
 }
 
 
 TECC_IMPL void TecServiceWorker_done_(TecDaemonPtr d) {
     TecServiceWorkerPtr self = TecServiceWorker_ptr(d);
-    TecMutex_destroy(&self->mtx_guard);
     TecSignal_done(&self->sig_stopped);
     TecSignal_done(&self->sig_started);
     TecWorker_done_(d);
@@ -94,7 +93,6 @@ TECC_IMPL bool TecServiceWorker_init_(TecServiceWorkerPtr self, TecServicePtr se
     bool ok = TecWorker_init(&self->worker, hash_table_size);
     ok &= TecSignal_init(&self->sig_started);
     ok &= TecSignal_init(&self->sig_stopped);
-    ok &= TecMutex_init(&self->mtx_guard);
     self->service = service;
     if (ok) {
         TecDaemonPtr d = TecDaemon_ptr(self);
@@ -106,5 +104,3 @@ TECC_IMPL bool TecServiceWorker_init_(TecServiceWorkerPtr self, TecServicePtr se
     }
     return ok;
 }
-
-
