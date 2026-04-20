@@ -54,7 +54,7 @@ int main(void) {
     int error = TecDaemon_run(&w);
     if (error) {
         TecDaemon_done(&w);
-        printf("\n*** Inited with code %i\n", error);
+        printf("\n*** Inited with code %d ***\n", error);
         return error;
     }
     // Wait until the worker is running.
@@ -77,6 +77,6 @@ int main(void) {
     TecDaemon_wait_until_terminated(&w);
     // Clean up.
     TecDaemon_done(&w);
-    printf("\n*** Exited with code %i\n", error);
+    printf("\n*** Exited with code %d ***\n", error);
     return error;
 }

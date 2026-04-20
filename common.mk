@@ -1,4 +1,4 @@
-# Time-stamp: <Last changed 2026-04-17 12:48:57 by magnolia>
+# Time-stamp: <Last changed 2026-04-20 03:05:37 by magnolia>
 
 ifndef CC_STD
 CC_STD := c17
@@ -8,7 +8,7 @@ endif
 #                     Compiler flags
 ########################################################################
 DEPS := -MMD -MP
-CFLAGS := -std=$(CC_STD) -Wall -Wextra $(DEPS)
+CFLAGS := -std=$(CC_STD) -Wall -Wextra -Werror $(DEPS)
 
 ########################################################################
 #                Platform depending settings
@@ -44,9 +44,4 @@ else
 CC := gcc
 CFLAGS += -fdiagnostics-color=always
 TARGET := $(TARGET)/gcc
-endif
-
-# To build a header-only library
-ifdef HEADER_ONLY
-CFLAGS += -DTECC_HEADER_ONLY_
 endif

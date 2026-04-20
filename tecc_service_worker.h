@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-19 03:01:50 by magnolia>
+// Time-stamp: <Last changed 2026-04-20 12:43:43 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -21,8 +21,8 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #define TECC_SERVICE_WORKER_H
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
-#include "tecc/tecc_daemon.h"
-#include "tecc/tecc_signal.h"
+/* #include "tecc/tecc_daemon.h" */
+/* #include "tecc/tecc_signal.h" */
 #include "tecc/tecc_thread.h"
 #include "tecc/tecc_worker.h"
 
@@ -50,8 +50,8 @@ typedef struct tagTecServiceWorker {
     TecServicePtr service;
     TecSignal sig_started;
     TecSignal sig_stopped;
-    thrd_start_t service_func; // Service function.
-    TecThread service_thread;  // Service thread.
+    TecThreadFunc service_func; // Service function.
+    TecThread service_thread;   // Service thread.
 } TecServiceWorker;
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

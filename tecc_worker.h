@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-18 14:20:45 by magnolia>
+// Time-stamp: <Last changed 2026-04-20 12:27:35 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -16,19 +16,15 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
-
 #ifndef TECC_WORKER_H
 #define TECC_WORKER_H
-
-#include <stdbool.h>
-#include <threads.h>
 
 #include "tecc/tecc_def.h"
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_message.h"
-#include "tecc/tecc_rpc.h"
 #include "tecc/tecc_queue.h"
 #include "tecc/tecc_map.h"
+#include "tecc/tecc_thread.h"
 #include "tecc/tecc_daemon.h"
 
 #ifdef __cplusplus
@@ -59,15 +55,15 @@ typedef struct tagTecWorker {
     TecSignal sig_terminated; // Indicating the worker has terminated.
     // Thread-safe message queue.
     TecQueue queue;
-    // Message handlers.
-    TecMap msg_handlers;
+    // Message callbacks.
+    TecMap callbacks;
     // Worker's init/exit handlers. Both are NULL by default.
     TecWorkerFunc on_init; // Called on starting the worker thread.
     TecWorkerFunc on_exit; // Called on exiting the worker thread if the worker has been inited successfully.
     // Worker thread.
     TecMutex mtx_guard;        // Worker thread guard.
-    thrd_start_t worker_func;  // Worker function.
-    thrd_t worker_thread;      // Worker thread.
+    TecThread worker_thread;   // Worker thread.
+    TecThreadFunc worker_func; // Worker function.
     // Message dispatcher.
     void (*dispatch)(TecMsgPtr, TecWorkerPtr);
     void (*on_msg)(TecMsgPtr, TecWorkerPtr); // Called on a message arrival.
@@ -87,17 +83,9 @@ TECC_API bool TecWorker_init(TecWorkerPtr w, size_t hash_table_size);
 
 // Registers a callback function to process a message.
 #define TecWorker_register(w, type, callback)\
-    TecWorker_register_(TecWorker_ptr(w), TecMsg_type(type), (TecMsgCallbackFunc)callback)
+    TecWorker_register_(TecWorker_ptr(w), TecMsg_type(type), (TecCallbackFunc)callback)
 
-// DO NOT CALL IT DIRECTLY!
-TECC_API void TecWorker_register_(TecWorkerPtr w, const char* func_name, TecMsgCallbackFunc callback);
-
-// Registers a handler function to process an RPC request.
-#define TecWorker_register_rpc(w, type, handler)\
-    TecWorker_register_rpc_(TecWorker_ptr(w), TecMsg_type(type), (TecRPCHandlerFunc)(handler))
-
-// DO NOT CALL IT DIRECTLY!
-TECC_API void TecWorker_register_rpc_(TecWorkerPtr w, const char* func_name, TecRPCHandlerFunc handler);
+TECC_API void TecWorker_register_(TecWorkerPtr w, const char* func_name, TecCallbackFunc callback);
 
 // Assigns an initialization handler that called on Worker thread starting.
 #define TecWorker_set_on_init(w, h) TecWorker_ptr(w)->on_init = (TecWorkerFunc)(h)

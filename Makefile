@@ -1,4 +1,4 @@
-# Time-stamp: <Last changed 2026-03-31 12:00:40 by magnolia>
+# Time-stamp: <Last changed 2026-04-20 03:08:37 by magnolia>
 
 include common.mk
 
@@ -28,7 +28,7 @@ $(LIBPATH): $(LIBOBJ) | $(LIBDIR)
 	@echo "Archiving $@"
 	ar rcs $@ $(LIBOBJ)
 
-# Compile .c → lib/.o
+# Compile .c to lib/.o
 $(LIBDIR)/%.o: %.c | $(LIBDIR)
 	$(CC) $(CFLAGS) $(LIBINCLUDES) -c $< -o $@
 

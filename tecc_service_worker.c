@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-19 03:10:23 by magnolia>
+// Time-stamp: <Last changed 2026-04-20 12:55:18 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -46,6 +46,7 @@ static int service_shutdown_func(void* arg) {
     return service->error;
 }
 
+// Creates and runs the service thread which calls `service->start()`.
 static int on_init(TecWorkerPtr w) {
     TecServiceWorkerPtr self = TecServiceWorker_ptr(w);
     TecThread_create(&self->service_thread, service_start_func, self);
@@ -57,6 +58,7 @@ static int on_init(TecWorkerPtr w) {
     return self->service_thread.res;
 }
 
+// Finish the
 static int on_exit(TecWorkerPtr w) {
     TecServiceWorkerPtr self = TecServiceWorker_ptr(w);
     TecThread exit_thread;
@@ -73,13 +75,18 @@ static int on_exit(TecWorkerPtr w) {
     return self->service->error;
 }
 
-// Overrides TecWorker's `rpc()` handler to redirect an RPC to the Service.
+// Overrides TecWorker's `rpc()` handler to redirect an RPC to the service.
 static int rpc(TecDaemonPtr d, TecRequestPtr request, TecReplyPtr reply) {
     TecServiceWorkerPtr self = TecServiceWorker_ptr(d);
     int error = self->service->dispatch(self->service, request, reply);
     return error;
 }
 
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*
+*                    TecServiceWorker API
+*
+ *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 TECC_IMPL void TecServiceWorker_done_(TecDaemonPtr d) {
     TecServiceWorkerPtr self = TecServiceWorker_ptr(d);

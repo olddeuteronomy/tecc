@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-19 01:58:03 by magnolia>
+// Time-stamp: <Last changed 2026-04-19 10:32:29 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -45,7 +45,7 @@ typedef struct tagTecMsg {
 } TecMsg;
 
 // Message callback function.
-typedef void (*TecMsgCallbackFunc)(TecMsgPtr, void*);
+typedef void (*TecCallbackFunc)(TecMsgPtr, void*);
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 *

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-19 02:57:02 by magnolia>
+// Time-stamp: <Last changed 2026-04-20 12:54:03 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -17,12 +17,8 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-#include "tecc/tecc_daemon.h"
 #include "tecc/tecc_def.h"
-#include "tecc/tecc_map.h"
-#include "tecc/tecc_message.h"
-#include "tecc/tecc_signal.h"
-#include <stdatomic.h>
+#include "tecc/tecc_daemon.h"
 #include "tecc/tecc_service.h"
 
 
@@ -43,7 +39,7 @@ static void shutdown(TecServicePtr self, TecSignalPtr sig_stopped) {
 // Calls a registered RPC handler.
 static int dispatch(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply) {
     TecMutex_lock(&self->mtx_guard);
-    TecServiceFunc handler = TecMap_get(&self->handlers, TecMsg_tag(request));
+    TecServiceFunc handler = (TecServiceFunc)(TecMap_get(&self->handlers, TecMsg_tag(request)));
     int error = TECC_ERR_HANDLER_NOT_FOUND;
     if (handler) {
         error =  handler(self, request, reply);
@@ -77,8 +73,8 @@ TECC_IMPL bool TecService_init_(TecServicePtr self, size_t hash_table_size) {
 }
 
 
-TECC_API void TecService_register_(TecServicePtr self, const char* func_name, TecServiceFunc handler) {
+TECC_IMPL void TecService_register_(TecServicePtr self, const char* func_name, TecServiceFunc handler) {
     TecMutex_lock(&self->mtx_guard);
-    TecMap_set(&self->handlers, func_name, handler);
+    TecMap_set(&self->handlers, func_name, (void*)handler);
     TecMutex_unlock(&self->mtx_guard);
 }

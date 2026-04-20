@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-18 13:11:36 by magnolia>
+// Time-stamp: <Last changed 2026-04-20 13:09:09 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -16,13 +16,8 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
-#include <stdbool.h>
-#include <threads.h>
 
 #include "tecc/tecc_def.h"
-#include "tecc/tecc_daemon.h"
-#include "tecc/tecc_message.h"
-#include "tecc/tecc_rpc.h"
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_worker.h"
 
@@ -32,9 +27,10 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 *
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
+// Runs the message loop.
 static int worker_func(void* arg) {
     TecWorkerPtr w = (TecWorkerPtr)arg;
-    // Call
+    // Initialization.
     if (w->on_init && !w->error) {
         w->error = w->on_init(w);
     }
@@ -48,17 +44,18 @@ static int worker_func(void* arg) {
             w->dispatch(msg, w);
         }
     }
+    // Exiting.
     if (w->on_exit && !w->error) {
         w->error = w->on_exit(w);
     }
     TecSignal_set(&w->sig_terminated);
     return w->error;
-};
+}
 
 
-// Process a "normal" message.
+// Processes a "normal" message.
 static void on_msg(TecMsgPtr msg, TecWorkerPtr w) {
-    TecMsgCallbackFunc callback = TecMap_get(&w->msg_handlers, TecMsg_tag(msg));
+    TecCallbackFunc callback = (TecCallbackFunc)TecMap_get(&w->callbacks, TecMsg_tag(msg));
     if (callback) {
         // Process a message.
         callback(msg, w);
@@ -68,21 +65,13 @@ static void on_msg(TecMsgPtr msg, TecWorkerPtr w) {
 }
 
 
-// Process an RPC message.
+// Processes an RPC message.
 static void on_rpc(TecMsgPtr msg, TecWorkerPtr w) {
-    // Handle an RPC call.
+    // RPC request is not supported in Worker.
+    (void)w;
     TecRPCPtr rpc = (TecRPCPtr)msg;
-    if (rpc->request) {
-            TecRPCHandlerFunc handler = TecMap_get(&w->msg_handlers, TecMsg_tag(rpc->request));
-            if (handler) {
-                rpc->error = handler(rpc->request, rpc->reply, w);
-            }
-            else {
-                // Handler not found.
-                rpc->error = TECC_ERR_HANDLER_NOT_FOUND;
-            }
-            TecSignal_set(rpc->sig_ready);
-    }
+    rpc->error = TECC_ERR_NOT_SUPPORTED;
+    TecSignal_set(rpc->sig_ready);
     // We do not deallocate an RPC request!
 }
 
@@ -106,27 +95,30 @@ static void dispatch(TecMsgPtr msg, TecWorkerPtr w) {
 static int TecWorker_run_(TecDaemonPtr d) {
     TecWorkerPtr w = (TecWorkerPtr)d;
     TecMutex_lock(&w->mtx_guard);
-    int status = thrd_create(&w->worker_thread, w->worker_func, w);
-    if (status != thrd_success) {
+    // Create the worker thread.
+    TecThread_create(&w->worker_thread, w->worker_func, w);
+    if (!w->worker_thread.ok) {
         // System error.
+        TecMutex_unlock(&w->mtx_guard);
         return TECC_ERR_SYSTEM;
     }
+    // Waits until the worker thread has started.
     TecSignal_wait(&w->sig_running);
-    int result = 0;
     if (w->error) {
-        thrd_join(w->worker_thread, &result);
+        // Finish the worker thread.
+        TecThread_join(&w->worker_thread);
     }
     TecMutex_unlock(&w->mtx_guard);
-    return result;
+    return w->error;
 }
 
 
 static int TecWorker_terminate_(TecDaemonPtr d) {
     TecWorkerPtr w = (TecWorkerPtr)d;
     TecMutex_lock(&w->mtx_guard);
-    int res = 0;
     TecDaemon_send(w, NULL);
-    thrd_join(w->worker_thread, &res);
+    TecThread_join(&w->worker_thread);
+    int res = w->error;
     TecMutex_unlock(&w->mtx_guard);
     return res;
 }
@@ -157,7 +149,7 @@ TECC_IMPL void TecWorker_done_(TecDaemonPtr d) {
     TecSignal_done(&w->sig_running);
     TecSignal_done(&w->sig_terminated);
     TecQueue_done(&w->queue);
-    TecMap_done(&w->msg_handlers);
+    TecMap_done(&w->callbacks);
     TecMutex_destroy(&w->mtx_guard);
     // Clean up the parent object.
     TecDaemon_done_(d);
@@ -181,7 +173,7 @@ TECC_IMPL bool TecWorker_init(TecWorkerPtr w, size_t hash_table_size) {
     ok = ok && TecSignal_init(&w->sig_running);
     ok = ok && TecSignal_init(&w->sig_terminated);
     ok = ok && TecQueue_init(&w->queue);
-    ok = ok && TecMap_init(&w->msg_handlers, w->hash_table_size);
+    ok = ok && TecMap_init(&w->callbacks, w->hash_table_size);
     ok = ok && TecMutex_init(&w->mtx_guard);
     w->on_init = NULL; // No special initialization.
     w->on_exit = NULL; // No special exiting.
@@ -203,13 +195,8 @@ TECC_IMPL bool TecWorker_init(TecWorkerPtr w, size_t hash_table_size) {
 }
 
 
-TECC_IMPL void TecWorker_register_(TecWorkerPtr w, const char* func_name, TecMsgCallbackFunc callback) {
+TECC_IMPL void TecWorker_register_(TecWorkerPtr w, const char* func_name, TecCallbackFunc callback) {
     TecMutex_lock(&w->mtx_guard);
-    TecMap_set(&w->msg_handlers, func_name, (void*)callback);
+    TecMap_set(&w->callbacks, func_name, callback);
     TecMutex_unlock(&w->mtx_guard);
-}
-
-
-TECC_IMPL void TecWorker_register_rpc_(TecWorkerPtr w, const char* func_name, TecRPCHandlerFunc handler) {
-    TecWorker_register_(w, func_name, (void*)handler);
 }

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-18 13:55:24 by magnolia>
+// Time-stamp: <Last changed 2026-04-20 11:35:08 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -28,6 +28,13 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 extern "C" {
 #endif
 
+/* // Forward references */
+/* typedef struct tagTecService TecService; */
+/* typedef TecService* TecServicePtr; */
+
+/* // RPC-style query to a service. */
+/* typedef int (*TecServiceFunc)(TecServicePtr, TecRequestPtr, TecReplyPtr); */
+
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 *
 *        Daemon - an abstract interface for long-lived service
@@ -52,7 +59,7 @@ typedef struct tagTecDaemon {
     // Sends a message to the daemon for non-blocking processing;
     // the daemon processes the message asynchronously.
     void (*send)(TecDaemonPtr, TecMsgPtr);
-    // Calls the RPC-style procedure (blocks until reply).
+    // RPC-style query to a service (blocks until reply).
     // Returns 0 on success; on error, returns a domain-specific error code.
     int (*rpc)(TecDaemonPtr, TecRequestPtr, TecReplyPtr);
     // Destructor. Called if not NULL (default).
@@ -65,21 +72,25 @@ typedef struct tagTecDaemon {
 *
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-#define TECC_ERR_OK                 0
-#define TECC_ERR_SYSTEM            -1
-#define TECC_ERR_HANDLER_NOT_FOUND -2
+enum {
+    TECC_ERR_OK =                 0,
+    TECC_ERR_SYSTEM =            -1,
+    TECC_ERR_HANDLER_NOT_FOUND = -2,
+    TECC_ERR_NOT_SUPPORTED =     -3
+};
 
 #define TecDaemon_ptr(self) ((TecDaemonPtr)(self))
 
-#define TecDaemon_init(self)\
-    TecDaemon_ptr(self)->flags = 0;\
-    TecDaemon_ptr(self)->sig_running = NULL;\
-    TecDaemon_ptr(self)->sig_terminated = NULL;\
-    TecDaemon_ptr(self)->run = NULL;\
-    TecDaemon_ptr(self)->terminate = NULL;\
-    TecDaemon_ptr(self)->send = NULL;\
-    TecDaemon_ptr(self)->rpc = NULL;\
-    TecDaemon_ptr(self)->done = NULL
+#define TecDaemon_init(self) do {\
+        TecDaemon_ptr(self)->flags = 0;\
+        TecDaemon_ptr(self)->sig_running = NULL;\
+        TecDaemon_ptr(self)->sig_terminated = NULL;\
+        TecDaemon_ptr(self)->run = NULL;\
+        TecDaemon_ptr(self)->terminate = NULL;\
+        TecDaemon_ptr(self)->send = NULL;\
+        TecDaemon_ptr(self)->rpc = NULL;\
+        TecDaemon_ptr(self)->done = NULL;\
+    } while(0)
 
 #define TecDaemon_run(self)\
     TecDaemon_ptr(self)->run(TecDaemon_ptr(self))
@@ -108,8 +119,10 @@ typedef struct tagTecDaemon {
 #define TecDaemon_done_func(self) (TecDaemon_ptr(self)->done)
 
 #define TecDaemon_done(self)\
-    if (TecDaemon_done_func(TecDaemon_ptr(self))) TecDaemon_done_func(TecDaemon_ptr(self))(TecDaemon_ptr(self));\
-    TecDaemon_done_func(self) = NULL
+    if (TecDaemon_done_func(TecDaemon_ptr(self)))\
+        do {\
+            TecDaemon_done_func(TecDaemon_ptr(self))(TecDaemon_ptr(self)); \
+            TecDaemon_done_func(self) = NULL; } while(0)
 
 // FOR CALLING FROM AN INHERITED OBJECT ONLY!
 #define TecDaemon_done_(self) ((void)(self))

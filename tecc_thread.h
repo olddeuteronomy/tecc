@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-18 16:59:12 by magnolia>
+// Time-stamp: <Last changed 2026-04-20 11:43:59 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -36,13 +36,16 @@ typedef struct tagTecThread {
     thrd_t t;
 } TecThread;
 
+typedef thrd_start_t TecThreadFunc;
+
+
 #define TecThread_create(self, func, arg) do {\
         (self)->res = thrd_create(&(self)->t, (func), (arg));\
         (self)->ok = ((self)->res == thrd_success);\
     } while(0)
 
 #define TecThread_join(self) do {\
-        if ((self)->ok) { thrd_join((self)->t, &((self)->res)); (self)->ok = false; } \
+        if ((self)->ok) { thrd_join((self)->t, &((self)->res)); (self)->ok = false; }\
     } while(0)
 
 #define TecThread_ok(self) ((self)->ok)
