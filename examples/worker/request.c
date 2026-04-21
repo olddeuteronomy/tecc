@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-20 13:26:13 by magnolia>
+// Time-stamp: <Last changed 2026-04-21 02:42:44 by magnolia>
 
 #include <stdio.h>
 #include <threads.h>
@@ -6,6 +6,7 @@
 #include "tecc/tecc_daemon.h"
 #include "tecc/tecc_service_worker.h"
 #include "tecc/tecc_service.h"
+#include "tecc/tecc_trace.h"
 
 
 typedef unsigned int GAUGE_ID;
@@ -40,6 +41,7 @@ static void analyze(GaugeReplyPtr reply, int error) {
 
 // Requests a temperature of a gauge.
 static void query_gauge(GAUGE_ID id, TecDaemonPtr w) {
+    TECC_TRACE_ENTER("query_gauge()");
     // Prepare a request
     GaugeRequest request;
     TecMsg_init(GaugeRequest, &request);
@@ -58,13 +60,17 @@ static void query_gauge(GAUGE_ID id, TecDaemonPtr w) {
 
     // Analyze the result.
     analyze(&reply, error);
+    TECC_TRACE_EXIT();
 }
 
 // RUN THE SERVICE WORKER USING THE DAEMON INTERFACE.
 static int run(TecDaemonPtr w) {
+    TECC_TRACE_ENTER("run()");
+    TECC_TRACE("Running the daemon ...\n");
     int error = TecDaemon_run(w);
     if (error) {
         printf("\n*** Inited with code %d\n", error);
+        TECC_TRACE_EXIT();
         return error;
     }
     // Waits until the service worker is running.
@@ -73,10 +79,12 @@ static int run(TecDaemonPtr w) {
     // Query gauges.
     query_gauge(12, TecDaemon_ptr(w));
 
+    TECC_TRACE_EXIT();
     return error;
 }
 
 int main(void) {
+    TECC_TRACE_INIT();
     // Initialize the service.
     TecService svc;
     TecService_init(&svc, 1);
@@ -91,14 +99,14 @@ int main(void) {
     int error = run(TecDaemon_ptr(&w));
 
     // Terminates the worker.
-    error = TecDaemon_terminate(w);
+    error = TecDaemon_terminate(&w);
     // Waits until the worker has terminated.
-    TecDaemon_wait_until_terminated(w);
-
+    TecDaemon_wait_until_terminated(&w);
 
     // Clean up.
     TecDaemon_done(&w);
     TecService_done(&svc);
     printf("\n*** Exited with code %d\n", error);
+    TECC_TRACE_DONE();
     return error;
 }
