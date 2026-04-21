@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-20 12:55:18 by magnolia>
+// Time-stamp: <Last changed 2026-04-21 15:01:48 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -25,6 +25,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include "tecc/tecc_thread.h"
 #include "tecc/tecc_worker.h"
 #include "tecc/tecc_service_worker.h"
+#include "tecc/tecc_trace.h"
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 *
@@ -55,7 +56,7 @@ static int on_init(TecWorkerPtr w) {
     }
     // Wait until the Service has started.
     TecSignal_wait(&self->sig_started);
-    return self->service_thread.res;
+    return self->service->error;
 }
 
 // Finish the
@@ -75,11 +76,13 @@ static int on_exit(TecWorkerPtr w) {
     return self->service->error;
 }
 
-// Overrides TecWorker's `rpc()` handler to redirect an RPC to the service.
-static int rpc(TecDaemonPtr d, TecRequestPtr request, TecReplyPtr reply) {
-    TecServiceWorkerPtr self = TecServiceWorker_ptr(d);
-    int error = self->service->dispatch(self->service, request, reply);
-    return error;
+// Overrides TecWorker's `on_rpc()` handler to redirect an RPC to the service.
+static void on_rpc(TecRPCPtr rpc, TecWorkerPtr w) {
+    TECC_TRACE_ENTER("ServiceWorker.on_rpc()");
+    TecServiceWorkerPtr self = TecServiceWorker_ptr(w);
+    rpc->error = self->service->dispatch(rpc->request, rpc->reply, self->service);
+    TecSignal_set(rpc->sig_ready);
+    TECC_TRACE_EXIT();
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -104,9 +107,9 @@ TECC_IMPL bool TecServiceWorker_init_(TecServiceWorkerPtr self, TecServicePtr se
     if (ok) {
         TecDaemonPtr d = TecDaemon_ptr(self);
         d->done = TecServiceWorker_done_;
-        d->rpc = rpc;
         self->worker.on_init = on_init;
         self->worker.on_exit = on_exit;
+        self->worker.on_rpc = on_rpc;
         service->owner = d;
     }
     return ok;

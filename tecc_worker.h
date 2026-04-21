@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-20 12:27:35 by magnolia>
+// Time-stamp: <Last changed 2026-04-21 14:16:17 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -67,7 +67,7 @@ typedef struct tagTecWorker {
     // Message dispatcher.
     void (*dispatch)(TecMsgPtr, TecWorkerPtr);
     void (*on_msg)(TecMsgPtr, TecWorkerPtr); // Called on a message arrival.
-    void (*on_rpc)(TecMsgPtr, TecWorkerPtr); // Called on an RPC message arrival.
+    void (*on_rpc)(TecRPCPtr, TecWorkerPtr); // Called on an RPC message arrival.
 } TecWorker;
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

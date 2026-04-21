@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-20 13:09:09 by magnolia>
+// Time-stamp: <Last changed 2026-04-21 14:16:40 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -18,8 +18,11 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ----------------------------------------------------------------------*/
 
 #include "tecc/tecc_def.h"
+#include "tecc/tecc_rpc.h"
+#include "tecc/tecc_trace.h"
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_worker.h"
+#include "tecc/tecc_trace.h"
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 *
@@ -29,6 +32,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
 // Runs the message loop.
 static int worker_func(void* arg) {
+    TECC_TRACE_ENTER("worker_func()");
     TecWorkerPtr w = (TecWorkerPtr)arg;
     // Initialization.
     if (w->on_init && !w->error) {
@@ -49,6 +53,7 @@ static int worker_func(void* arg) {
         w->error = w->on_exit(w);
     }
     TecSignal_set(&w->sig_terminated);
+    TECC_TRACE_EXIT();
     return w->error;
 }
 
@@ -66,10 +71,9 @@ static void on_msg(TecMsgPtr msg, TecWorkerPtr w) {
 
 
 // Processes an RPC message.
-static void on_rpc(TecMsgPtr msg, TecWorkerPtr w) {
+static void on_rpc(TecRPCPtr rpc, TecWorkerPtr w) {
     // RPC request is not supported in Worker.
     (void)w;
-    TecRPCPtr rpc = (TecRPCPtr)msg;
     rpc->error = TECC_ERR_NOT_SUPPORTED;
     TecSignal_set(rpc->sig_ready);
     // We do not deallocate an RPC request!
@@ -78,12 +82,15 @@ static void on_rpc(TecMsgPtr msg, TecWorkerPtr w) {
 
 // Message dispatcher.
 static void dispatch(TecMsgPtr msg, TecWorkerPtr w) {
+    TECC_TRACE_ENTER("Worker.dispatch()");
+    TECC_TRACE("MsgType: %s\n", TecMsg_tag(msg));
     if (TecMsg_typeof(TecRPC, msg)) {
-        w->on_rpc(msg, w);
+        w->on_rpc((TecRPCPtr)msg, w);
     }
     else {
         w->on_msg(msg, w);
     }
+    TECC_TRACE_EXIT();
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

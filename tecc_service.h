@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-19 03:03:27 by magnolia>
+// Time-stamp: <Last changed 2026-04-21 15:34:15 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -43,7 +43,7 @@ typedef TecDaemon* TecDaemonPtr;
 typedef struct tagTecService TecService;
 typedef TecService* TecServicePtr;
 
-typedef int (*TecServiceFunc)(TecServicePtr, TecRequestPtr, TecReplyPtr);
+typedef int (*TecServiceFunc)(TecRequestPtr, TecReplyPtr, void*);
 
 typedef struct tagTecService {
     // A pointer to the owning Daemon object (may be NULL).
@@ -74,9 +74,10 @@ typedef struct tagTecService {
 
 #define TecService_ptr(self) ((TecServicePtr)(self))
 
-TECC_API bool TecService_init_(TecServicePtr self, size_t hash_table_size);
 #define TecService_init(self, hash_table_size)\
     TecService_init_(TecService_ptr(self), hash_table_size)
+
+TECC_API bool TecService_init_(TecServicePtr self, size_t hash_table_size);
 
 // Register an RPC handler.
 #define TecService_register(self, request_type, handler)\
@@ -84,9 +85,15 @@ TECC_API bool TecService_init_(TecServicePtr self, size_t hash_table_size);
 
 TECC_API void TecService_register_(TecServicePtr self, const char* func_name, TecServiceFunc handler);
 
+// Makes an RPC through the daemon if possible (using the daemon's thread).
+#define TecService_rpc(self, request, reply)\
+    TecService_rpc_(TecService_ptr(self), (TecRequestPtr)(request), (TecReplyPtr)(reply))
 
+TECC_API int TecService_rpc_(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply);
+
+
+// Destructor.
 #define TecService_done_func(self) (TecService_ptr(self)->done)
-
 #define TecService_done(self)\
     if(TecService_done_func(self)) TecService_done_func(self)(TecService_ptr(self))
 

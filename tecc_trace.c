@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-21 03:08:44 by magnolia>
+// Time-stamp: <Last changed 2026-04-21 13:46:46 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -16,10 +16,9 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
-#ifdef TECC_TRACE_ON
-
 #include <stdio.h>
 #include <stdarg.h>
+#include <threads.h>
 
 #include "tecc/tecc_def.h"
 #include "tecc/tecc_signal.h"
@@ -30,26 +29,9 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 static TecMutex guard_ = {false};
 
 static const int shift = 2;
-static volatile int level = 0;
+thread_local static int level = 0;
 static const char zs[1] = {0};
 
-#if defined (TECC_TRACE_MICROSEC)
-#  define TRACE_RESULUTION 1000
-static const char resolution[] = "us";
-#elif defined (TECC_TRACE_NANOSEC)
-#  define TRACE_RESOLUTION 1
-static const char resolution[] = "ns";
-#endif
-
-// Default time resolution (millisec).
-#if !defined (TRACE_RESOLUTION)
-#  define TRACE_RESOLUTION 1000000
-static const char resolution[] = "ms";
-#endif
-
-TECC_unused static TecTimePoint get_trace_time() {
-    return tec_tp_now() / TRACE_RESOLUTION;
-}
 
 TECC_IMPL void tec_trace_init() {
     TecMutex_init(&guard_);
@@ -62,7 +44,7 @@ TECC_IMPL void tec_trace_done() {
 TECC_IMPL void tec_trace_enter(TecTracerPtr tr) {
     if (!guard_.ok) return;
     TecMutex_lock(&guard_);
-    printf("%*s+ `%s' entered.\n", level, zs, tr->name);
+    printf("%*s+ %s entered @TID=%08lx.\n", level, zs, tr->name, thrd_current());
     level += shift;
     TecMutex_unlock(&guard_);
 }
@@ -71,8 +53,10 @@ TECC_IMPL void tec_trace_exit(TecTracerPtr tr) {
     if (!guard_.ok) return;
     TecMutex_lock(&guard_);
     level -= shift;
-    TecTimePoint diff_time = (tec_tp_now() - tr->start_time) / TRACE_RESOLUTION;
-    printf("%*s- `%s' exited in %ld%s.\n",  level, zs, tr->name, diff_time, resolution);
+    TecTimePoint diff_time_ns = tec_tp_now() - tr->start_time;
+    TecTimePoint diff_time_ms = diff_time_ns / 1000000; // Milliseconds
+    TecTimePoint diff_time_us = diff_time_ns / 1000;    // Microseconds
+    printf("%*s- %s completed in %ldms/%ldus.\n",  level, zs, tr->name, diff_time_ms, diff_time_us);
     TecMutex_unlock(&guard_);
 }
 
@@ -82,12 +66,10 @@ TECC_IMPL void tec_trace(TecTracerPtr tr, const char* fmt, ...) {
     (void)fmt;
     if (!guard_.ok) return;
     TecMutex_lock(&guard_);
-    printf("%*s* `%s': ", level, zs, tr->name);
+    printf("%*s* %s: ", level, zs, tr->name);
     va_list args;
     va_start(args, fmt);
     vprintf(fmt, args);
     va_end(args);
     TecMutex_unlock(&guard_);
 }
-
-#endif // TECC_TRACE_ON

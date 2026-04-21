@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-21 02:42:44 by magnolia>
+// Time-stamp: <Last changed 2026-04-21 13:27:00 by magnolia>
 
 #include <stdio.h>
 #include <threads.h>
@@ -24,12 +24,14 @@ TECC_DEF_MESSAGE(GaugeReply)
 TECC_END_MESSAGE(GaugeReply)
 
 
-// This handler will be called from the worker internal thread.
-static int on_gauge_request(TecServicePtr svc, GaugeRequestPtr request, GaugeReplyPtr reply) {
-    (void)svc;
+// This handler will be called from the worker or service internal thread.
+static int on_gauge_request(GaugeRequestPtr request, GaugeReplyPtr reply, void* args) {
+    TECC_TRACE_ENTER("on_gauge_request()");
+    (void)args;
     reply->id = request->id;
     reply->units = 'C';
     reply->temperature = 36.7;
+    TECC_TRACE_EXIT();
     return 0;
 }
 
@@ -40,7 +42,7 @@ static void analyze(GaugeReplyPtr reply, int error) {
 }
 
 // Requests a temperature of a gauge.
-static void query_gauge(GAUGE_ID id, TecDaemonPtr w) {
+static void query_gauge(GAUGE_ID id, TecServicePtr svc) {
     TECC_TRACE_ENTER("query_gauge()");
     // Prepare a request
     GaugeRequest request;
@@ -56,7 +58,7 @@ static void query_gauge(GAUGE_ID id, TecDaemonPtr w) {
     reply.units = '?';
 
     // Query the gauge
-    int error =TecDaemon_rpc(w, &request, &reply);
+    int error = TecService_rpc(svc, &request, &reply);
 
     // Analyze the result.
     analyze(&reply, error);
@@ -64,9 +66,8 @@ static void query_gauge(GAUGE_ID id, TecDaemonPtr w) {
 }
 
 // RUN THE SERVICE WORKER USING THE DAEMON INTERFACE.
-static int run(TecDaemonPtr w) {
+static int run(TecDaemonPtr w, TecServicePtr svc) {
     TECC_TRACE_ENTER("run()");
-    TECC_TRACE("Running the daemon ...\n");
     int error = TecDaemon_run(w);
     if (error) {
         printf("\n*** Inited with code %d\n", error);
@@ -77,7 +78,7 @@ static int run(TecDaemonPtr w) {
     TecDaemon_wait_until_running(w);
 
     // Query gauges.
-    query_gauge(12, TecDaemon_ptr(w));
+    query_gauge(12, svc);
 
     TECC_TRACE_EXIT();
     return error;
@@ -96,7 +97,7 @@ int main(void) {
     TecServiceWorker_init(&w, &svc, 1);
 
     // RUN THE SERVICE WORKER USING THE DAEMON INTERFACE.
-    int error = run(TecDaemon_ptr(&w));
+    int error = run(TecDaemon_ptr(&w), &svc);
 
     // Terminates the worker.
     error = TecDaemon_terminate(&w);

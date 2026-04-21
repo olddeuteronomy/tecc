@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-21 02:56:54 by magnolia>
+// Time-stamp: <Last changed 2026-04-21 11:01:57 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -20,25 +20,8 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #ifndef TECC_TRACE_H
 #define TECC_TRACE_H
 
-#ifdef TECC_TRACE_ON
-
 #include "tecc/tecc_def.h"    // IWYU pragma: keep
 #include "tecc/tecc_time.h"
-
-#define TECC_TRACE_VAR_ trace_me__0
-
-#define TECC_TRACE_ENTER(name)\
-    TecTracer TECC_TRACE_VAL_ = {name, tec_tp_now()};\
-    tec_trace_enter(&(TECC_TRACE_VAL_))
-
-#define TECC_TRACE_EXIT()\
-    tec_trace_exit(&(TECC_TRACE_VAL_))
-
-#define TECC_TRACE(...)\
-    tec_trace(&(TECC_TRACE_VAL_), __VA_ARGS__)
-
-#define TECC_TRACE_INIT() tec_trace_init()
-#define TECC_TRACE_DONE() tec_trace_done()
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,6 +45,23 @@ TECC_API void tec_trace(TecTracerPtr ptr, const char* fmt, ...);
 #ifdef __cplusplus
 }
 #endif
+
+#ifdef TECC_TRACE_ON
+
+#define TECC_TRACE_VAR_ trace_me__0
+
+#define TECC_TRACE_ENTER(name)\
+    TecTracer TECC_TRACE_VAL_ = {name, tec_tp_now()};\
+    tec_trace_enter(&(TECC_TRACE_VAL_))
+
+#define TECC_TRACE_EXIT()\
+    tec_trace_exit(&(TECC_TRACE_VAL_))
+
+#define TECC_TRACE(...)\
+    tec_trace(&(TECC_TRACE_VAL_), __VA_ARGS__)
+
+#define TECC_TRACE_INIT() tec_trace_init()
+#define TECC_TRACE_DONE() tec_trace_done()
 
 #else
 // !TECC_TRACE_ON

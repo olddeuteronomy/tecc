@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-20 12:54:03 by magnolia>
+// Time-stamp: <Last changed 2026-04-21 15:27:41 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -19,6 +19,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
 #include "tecc/tecc_def.h"
 #include "tecc/tecc_daemon.h"
+#include "tecc/tecc_trace.h"
 #include "tecc/tecc_service.h"
 
 
@@ -37,12 +38,13 @@ static void shutdown(TecServicePtr self, TecSignalPtr sig_stopped) {
 
 
 // Calls a registered RPC handler.
-static int dispatch(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply) {
+static int dispatch(TecRequestPtr request, TecReplyPtr reply, void* args) {
+    TecServicePtr self = TecService_ptr(args);
     TecMutex_lock(&self->mtx_guard);
-    TecServiceFunc handler = (TecServiceFunc)(TecMap_get(&self->handlers, TecMsg_tag(request)));
     int error = TECC_ERR_HANDLER_NOT_FOUND;
+    TecServiceFunc handler = (TecServiceFunc)(TecMap_get(&self->handlers, TecMsg_tag(request)));
     if (handler) {
-        error =  handler(self, request, reply);
+        error =  handler(request, reply, self);
     }
     TecMutex_unlock(&self->mtx_guard);
     return error;
@@ -77,4 +79,23 @@ TECC_IMPL void TecService_register_(TecServicePtr self, const char* func_name, T
     TecMutex_lock(&self->mtx_guard);
     TecMap_set(&self->handlers, func_name, (void*)handler);
     TecMutex_unlock(&self->mtx_guard);
+}
+
+
+TECC_IMPL int TecService_rpc_(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply) {
+    TECC_TRACE_ENTER("Service_rpc()");
+    int error = 0;
+    if (self->owner) {
+        // Make a call throught the daemon.
+        TECC_TRACE("Dispatching through the daemon...\n");
+        error = TecDaemon_rpc(self->owner, request, reply);
+        /* error = self->owner->rpc(self->owner, request, reply); */
+    }
+    else {
+        // Dispatch through itself.
+        TECC_TRACE("Dispatching through the service...\n");
+        error = self->dispatch(request, reply, self);
+    }
+    TECC_TRACE_EXIT();
+    return error;
 }
