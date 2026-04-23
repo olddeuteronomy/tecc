@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-22 13:12:54 by magnolia>
+// Time-stamp: <Last changed 2026-04-23 02:35:34 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -28,6 +28,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include <errno.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "tecc/tecc_def.h"   // IWYU pragma: keep
 #include "tecc/tecc_trace.h" // IWYU pragma: keep
@@ -110,17 +111,108 @@ TECC_IMPL void TecSocketParams_done(TecSocketParamsPtr self) {
 *
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-TECC_IMPL void TecSocket_init_(TecSocketPtr sock) {
+TECC_IMPL void TecSocket_init_(TecSocketPtr sock, TecSocketParamsPtr params) {
     sock->fd = TECC_EOF;
     sock->flags = 0;
-    sock->params = NULL;
+    sock->params = params;
     TecBuffer_init(&sock->buf); // Empty buffer, no memory allocated.
 }
+
 
 TECC_IMPL void TecSocket_done_(TecSocketPtr sock) {
     sock->fd = TECC_EOF;
     // We do not destroy the buffer!
 }
+
+
+static int resolve_address(TecSocketPtr sock, struct addrinfo** ai) {
+    TECC_TRACE_ENTER("Socket::resolve_address()");
+    int err = 0;
+    TECC_TRACE("Resolving address %s:%d...\n",
+               sock->params->addr, sock->params->port);
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = sock->params->family;
+    hints.ai_socktype = sock->params->socktype;
+    hints.ai_protocol = sock->params->protocol;
+    // getaddrinfo() returns a list of address structures.
+    char port_str[16];
+    snprintf(port_str, 15, "%d", sock->params->port);
+    err = getaddrinfo(sock->params->addr, port_str,
+                      &hints, ai);
+    if( err ) {
+        TECC_TRACE("(%d) Error resolving address.\n", err);
+    }
+    else {
+        TECC_TRACE("Address resolved OK.\n");
+    }
+    TECC_TRACE_EXIT();
+    return err;
+}
+
+static int get_socket_fd(TecSocketPtr sock) {
+    TECC_TRACE_ENTER("Socket::get_socket_fd()");
+    int fd = TECC_EOF;
+    struct addrinfo* servinfo = NULL;
+    struct addrinfo* p = NULL;
+    // Resolve address.
+    int err = resolve_address(sock, &servinfo);
+    if (!err) {
+        TECC_TRACE("Connecting...\n");
+        // If socket() (or connect()) fails, we close the socket
+        // and try the next address.
+        for (p = servinfo; p != NULL; p = p->ai_next) {
+            fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+            if (fd == TECC_EOF) {
+                // Try next socket.
+                continue;
+            }
+            if (connect(fd, p->ai_addr, p->ai_addrlen) != TECC_EOF) {
+                // Success.
+                break;
+            }
+            // Try next socket.
+            close(fd);
+        }
+        // No longer needed.
+        freeaddrinfo(servinfo);
+    }
+    if (p == NULL) {
+        TECC_TRACE("Failed to connect to %s:%d.\n",
+                   sock->params->addr, sock->params->port);
+    }
+    else {
+        TECC_TRACE("Connected OK.\n");
+    }
+    TECC_TRACE_EXIT();
+    return fd;
+}
+
+
+// On success, returns 0 and sets socket FD.
+TECC_IMPL int TecSocket_connect(TecSocketPtr sock) {
+    TECC_TRACE_ENTER("Socket::connect()");
+    int fd = get_socket_fd(sock);
+    int err = (fd == TECC_EOF) ? ECONNREFUSED : 0;
+    if (!err) {
+        sock->fd = fd;
+    }
+    TECC_TRACE_EXIT();
+    return err;
+}
+
+
+// Close socket.
+TECC_IMPL void TecSocket_close(TecSocketPtr sock) {
+    TECC_TRACE_ENTER("Socket::close()");
+    if (sock->fd != TECC_EOF) {
+        shutdown(sock->fd, SHUT_RDWR);
+        close(sock->fd);
+        sock->fd = EOF;
+    }
+    TECC_TRACE_EXIT();
+}
+
 
 // If `len' is 0, reads null-terminated string. Returns 0 on success.
 TECC_IMPL int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst, size_t len) {
@@ -182,6 +274,7 @@ TECC_IMPL int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst, size_t len) {
     return err;
 }
 
+
 // Writes `len' bytes to the socket. Returns 0 on success.
 TECC_IMPL int TecSocket_write(TecSocketPtr sock, TecBufferPtr src) {
     TECC_TRACE_ENTER("Socket_write");
@@ -205,7 +298,6 @@ TECC_IMPL int TecSocket_write(TecSocketPtr sock, TecBufferPtr src) {
             TECC_TRACE("%s:%d (%d )Partial write: %z bytes of %z.\n",
                        sock->params->addr, sock->params->port, err, sent, src->size);
         }
-
     }
     TECC_TRACE("%s:%d <-- SEND %ld bytes.\n",
                sock->params->addr, sock->params->port, sent);

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-21 15:27:41 by magnolia>
+// Time-stamp: <Last changed 2026-04-23 01:54:11 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -89,7 +89,6 @@ TECC_IMPL int TecService_rpc_(TecServicePtr self, TecRequestPtr request, TecRepl
         // Make a call throught the daemon.
         TECC_TRACE("Dispatching through the daemon...\n");
         error = TecDaemon_rpc(self->owner, request, reply);
-        /* error = self->owner->rpc(self->owner, request, reply); */
     }
     else {
         // Dispatch through itself.

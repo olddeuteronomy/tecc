@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-22 13:13:53 by magnolia>
+// Time-stamp: <Last changed 2026-04-23 02:37:01 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -112,6 +112,8 @@ typedef struct tagTecSocketParams {
     size_t thread_pool_size; // Number of threads in the thread pool. 0 - no thread pool.
 } TecSocketParams;
 
+#define TecSocketParams_ptr(ptr) ((TecSocketParamsPtr)(ptr))
+
 // Initialize with default values.
 TECC_API void TecSocketParams_init(TecSocketParamsPtr self);
 
@@ -144,17 +146,24 @@ typedef struct tagTecSocket {
 #define TecSocket_ptr(ptr) ((TecSocketPtr)(ptr))
 
 // Initialize the socket.
-#define TecSocket_init(sock) TecSocket_init_(TecSocket_ptr(sock))
-TECC_API void TecSocket_init_(TecSocketPtr sock);
+#define TecSocket_init(sock, params)\
+    TecSocket_init_(TecSocket_ptr(sock), TecSocketParams_ptr(params))
+TECC_API void TecSocket_init_(TecSocketPtr sock, TecSocketParamsPtr params);
 
 // Destructor.
 #define TecSocket_done(sock) TecSocket_done_(TecSocket_ptr(sock))
 TECC_API void TecSocket_done_(TecSocketPtr sock);
 
-// If `len' is 0, reads null-terminated string. Returns 0 on success or codes from <errno.h>
+// On success, returns 0 and sets socket FD.
+TECC_API int TecSocket_connect(TecSocketPtr sock);
+
+// Close socket.
+TECC_API void TecSocket_close(TecSocketPtr sock);
+
+// If `len' is 0, reads null-terminated string. Returns 0 on success or an error code from <errno.h>
 TECC_API int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst, size_t len);
 
-// Writes `src' buffer to the socket. Returns 0 on success or codes from <errno.h>
+// Writes `src' buffer to the socket. Returns 0 on success or an error code from <errno.h>
 TECC_API int TecSocket_write(TecSocketPtr sock, TecBufferPtr src);
 
 #ifdef __cplusplus

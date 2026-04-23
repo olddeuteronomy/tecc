@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-22 15:35:14 by magnolia>
+// Time-stamp: <Last changed 2026-04-23 02:08:34 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -45,7 +45,7 @@ typedef struct tagTecClientParams {
     size_t hash_table_size; // Client service hash table size [TECC_CLIENT_HASH_TABLE_SIZE]
 } TecClientParams;
 
-#define TecClientParams_ptr(ptr) ((TecSocketClientParamsPtr)(ptr))
+#define TecClientParams_ptr(ptr) ((TecClientParamsPtr)(ptr))
 
 #define TecClientParams_init(ptr) TecClientParams_init_(TecClientParams_ptr(ptr))
 TECC_API void TecClientParams_init_(TecClientParamsPtr);
@@ -66,6 +66,7 @@ typedef struct tagTecClient {
     TecService service;
     TecClientParamsPtr client_params;
     TecSocketParamsPtr socket_params;
+    TecSocket sock;
     TecBuffer buffer;
 } TecClient;
 
@@ -88,8 +89,10 @@ TECC_API void TecClient_init_(TecClientPtr self,
                               TecSocketParamsPtr socket_params);
 
 // Destructor.
-#define TecClient_done(self) TecClient_done_(TecClient_ptr(self))
-TECC_API void TecClient_done_(TecClientPtr self);
+#define TecClient_done(self) TecService_done(TecService_ptr(self))
+
+// FOR CALLING FROM AN INHERITED OBJECT ONLY!
+TECC_API void TecClient_done_(TecServicePtr self);
 
 #ifdef __cplusplus
 }
