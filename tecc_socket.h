@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-23 02:37:01 by magnolia>
+// Time-stamp: <Last changed 2026-04-25 16:22:49 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -16,100 +16,88 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
-
 #ifndef TECC_SOCKET_H
 #define TECC_SOCKET_H
-
-/*
-
-Default parameters defined in tecc_socket.c
--------------------------------------------
-
-// IPv4 address to bind/accept connections from any interface.
-static const char kAnyAddr[] = "0.0.0.0";
-
-// IPv4 loopback address (localhost).
-static const char kLocalAddr[] = "127.0.0.1";
-
-// Hostname that resolves to localhost for both IPv4 and IPv6.
-static const char kLocalURI[] = "localhost";
-
-// IPv6 address to bind/accept connections from any interface.
-static const char kAnyAddrIP6[] = "::";
-
-// IPv6 loopback address (localhost).
-static const char kLocalAddrIP6[] = "::1";
-
-// Default port number used for testing and examples.
-static const int kDefaultPort = 4321;
-
-// Default address family: AF_UNSPEC allows both IPv4 and IPv6.
-static const int kDefaultFamily = AF_UNSPEC;
-
-// Default socket type: TCP stream socket.
-static const int kDefaultSockType = SOCK_STREAM;
-
-// Default protocol: 0 for "any appropriate protocol".
-static const int kDefaultProtocol = 0;
-
-// Default addrinfo flags for client sockets (no special behaviour).
-static const int kDefaultClientFlags = 0;
-
-Server options
---------------
-
-// Default addrinfo flags for server sockets (bind to local address).
-static const int kDefaultServerFlags = AI_PASSIVE;
-
-// Disable SO_REUSEADDR option.
-static const int kDefaultOptReuseAddress = 0;
-
-// Enable SO_REUSEADDR and SO_REUSEPORT (if supported).
-static const int kDefaultOptReusePort = 1;
-
-// Default number of threads in the thread pool. Initially disabled.
-static const int kDefaultNumThreads = 0;
-
-// Maximum queue length specifiable by `listen()', usually 4096.
-static const int kDefaultConnQueueSize = SOMAXCONN;
-
-*/
 
 #include "tecc/tecc_def.h"
 #include "tecc/tecc_buffer.h"
 
-
 // 255 bytes is the DNS packet limit.
 #define TECC_MAX_URI_LEN 256
 
-// Defalut socket buffer size.
+// Default socket buffer size.
 #define TECC_SOCKET_BUFFER_SIZE 1024
 
-// End of file.
+// End of stream.
 #define TECC_EOF (-1)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/*======================================================================
+*
+*               Default socket parameters and constants
+*
+ *====================================================================*/
+
+// Server: IPv4 address to bind/accept connections from any interface ["0.0.0.0"].
+extern const char* const kTecAnyAddr;
+// Client: IPv4 loopback address ["127.0.0.1"].
+extern const char* const kTecLocalAddr;
+// Hostname that resolves to localhost for both IPv4 and IPv6 ["localhost"].
+extern const char* const kTecLocalHost;
+// Server: IPv6 address to bind/accept connections from any interface ["::"].
+extern const char* const kTecAnyAddrIP6;
+// Client: IPv6 loopback address ["::1"].
+extern const char* const kTecLocalAddrIP6;
+// Default port number used for testing and examples [4321].
+extern const int kTecDefaultPort;
+// Default address family: AF_UNSPEC allows both IPv4 and IPv6 [AF_UNSPEC].
+extern const int kTecDefaultFamily;
+// Default socket type: TCP stream socket [SOCK_STREAM].
+extern const int kTecDefaultSockType;
+// Default protocol: any appropriate protocol [0].
+extern const int kTecDefaultProtocol;
+
+/* Client parameters */
+
+// Default flags for client sockets [0].
+extern const int kTecDefaultClientFlags;
+
+/* Server parameters */
+
+// Default flags for server sockets [AI_PASSIVE].
+extern const int kTecDefaultServerFlags;
+// SO_REUSEADDR option initially disabled [0].
+extern const int kTecDefaultOptReuseAddress;
+// SO_REUSEPORT option initially enabled [1].
+extern const int kTecDefaultOptReusePort;
+// Maximum queue length specifiable by `listen()`, usually 4096.
+extern const int kTecDefaultConnQueueSize;
+
+/*======================================================================
+*
+*                   TecSocketParameters
+*
+ *====================================================================*/
+
 typedef struct tagTecSocketParams TecSocketParams;
 typedef TecSocketParams* TecSocketParamsPtr;
 
 typedef struct tagTecSocketParams {
+    // Common parameters.
     char addr[TECC_MAX_URI_LEN];
-    int port;           // Port number to connect to or bind.
-    int family;         // Address family (AF_INET, AF_INET6, AF_UNSPEC, ...).
-    int socktype;       // Socket type (SOCK_STREAM, SOCK_DGRAM, ...).
-    int protocol;       // Protocol (usually 0).
-    int client_flags;   // Flags passed to getaddrinfo() for client.
-    int server_flags;   // Flags passed to getaddrinfo() for server.
-    size_t buffer_size; // Size of internal buffer for read/write operations.
+    int port;               // Port number to connect to or bind.
+    int family;             // Address family (AF_INET, AF_INET6, AF_UNSPEC, ...).
+    int socktype;           // Socket type (SOCK_STREAM, SOCK_DGRAM, ...).
+    int protocol;           // Protocol (usually 0, any appropriate).
+    int flags;              // AI_PASSIVE for servers.
+    size_t buffer_size;     // Size of internal buffer for send/recv operations.
     // Server parameters.
-    int mode;                // Data handling mode (character stream or binary network data).
-    int queue_size;          // Maximum backlog for listen().
-    int opt_reuse_addr;      // Whether to set SO_REUSEADDR (0 = no, 1 = yes).
-    int opt_reuse_port;      // Whether to set SO_REUSEPORT (if available).
-    size_t thread_pool_size; // Number of threads in the thread pool. 0 - no thread pool.
+    int queue_size;         // Maximum backlog for listen ().
+    int opt_reuse_addr;     // Socket option SO_REUSEADDR (0 = no, 1 = yes).
+    int opt_reuse_port;     // Socket option SO_REUSEPORT (0 = no, 1 = yes).
 } TecSocketParams;
 
 #define TecSocketParams_ptr(ptr) ((TecSocketParamsPtr)(ptr))
@@ -117,15 +105,19 @@ typedef struct tagTecSocketParams {
 // Initialize with default values.
 TECC_API void TecSocketParams_init(TecSocketParamsPtr self);
 
+// Set address.
+TECC_API void TecSocketParams_set_addr(TecSocketParamsPtr self, const char* addr);
+
 // Destructor. Does nothing by default.
 TECC_API void TecSocketParams_done(TecSocketParamsPtr self);
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *                        TecSocket object
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
+struct addrinfo;
 
 typedef struct tagTecSocket TecSocket;
 typedef TecSocket* TecSocketPtr;
@@ -133,38 +125,58 @@ typedef TecSocket* TecSocketPtr;
 typedef struct tagTecSocket {
     int fd;
     int flags;
+    struct addrinfo* pai;
     TecBuffer buf;
     TecSocketParamsPtr params;
 } TecSocket;
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *                       TecSocket API
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 #define TecSocket_ptr(ptr) ((TecSocketPtr)(ptr))
 
 // Initialize the socket.
 #define TecSocket_init(sock, params)\
     TecSocket_init_(TecSocket_ptr(sock), TecSocketParams_ptr(params))
-TECC_API void TecSocket_init_(TecSocketPtr sock, TecSocketParamsPtr params);
+TECC_API void TecSocket_init_(TecSocketPtr, TecSocketParamsPtr);
 
 // Destructor.
 #define TecSocket_done(sock) TecSocket_done_(TecSocket_ptr(sock))
 TECC_API void TecSocket_done_(TecSocketPtr sock);
 
-// On success, returns 0 and sets socket FD.
-TECC_API int TecSocket_connect(TecSocketPtr sock);
+// Resolves peer address and opens the socket. On success, returns 0 and sets socket FD.
+// Currently, only SOCK_STREAM sockets (TCP) are supported.
+TECC_API int TecSocket_open(TecSocketPtr);
 
-// Close socket.
-TECC_API void TecSocket_close(TecSocketPtr sock);
+// Sets socket options.
+TECC_API int TecSocket_set_options(TecSocketPtr);
 
-// If `len' is 0, reads null-terminated string. Returns 0 on success or an error code from <errno.h>
+// Connects to the host.
+// Currently, only SOCK_STREAM sockets (TCP) are supported.
+TECC_API int TecSocket_connect(TecSocketPtr);
+
+#define TecSocket_is_server(ptr) (TecSocket_ptr(ptr)->flags & kTecDefaultServerFlags)
+
+#define TecSocket_is_valid(ptr) (TecSocket_ptr(ptr)->fd != TECC_EOF)
+
+// Closes the socket.
+TECC_API void TecSocket_close(TecSocketPtr);
+
+// Reads `len` bytes from the SOCK_STREAM socket into the `dst` buffer.
+// If `len` is 0, reads a null-terminated string.
+// Returns 0 on success or an error code from <errno.h> on failure.
 TECC_API int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst, size_t len);
 
-// Writes `src' buffer to the socket. Returns 0 on success or an error code from <errno.h>
+// Writes the `src` buffer to the SOCK_STREAM socket.
+// Returns 0 on success or an error code from <errno.h> on failure.
 TECC_API int TecSocket_write(TecSocketPtr sock, TecBufferPtr src);
+
+// Writes the null-terminated string to the SOCK_STREAM socket.
+// Returns 0 on success or an error code from <errno.h> on failure.
+TECC_API int TecSocket_write_str(TecSocketPtr sock, char* s);
 
 #ifdef __cplusplus
 }

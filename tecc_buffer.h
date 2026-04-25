@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-17 13:50:01 by magnolia>
+// Time-stamp: <Last changed 2026-04-24 16:05:33 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -35,20 +35,18 @@ extern "C" {
 
 // TecBuffer_seek's `origin` flags.
 enum {
-    tecSeekCur,
-    tecSeekSet,
-    tecSeekEnd
+    kTecSeekCur,
+    kTecSeekSet,
+    kTecSeekEnd
 };
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*
-*          An expandable byte buffer, mimicking file operations
+/*======================================================================
+*          An expandable byte buffer, mimicking file operations.
 *
 *       Provides a growable in-memory buffer with an API similar to
 *           stdio FILE streams (read, write, seek, tell, etc.).
 *      The internal storage is automatically expanded as needed.
-*
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 typedef struct tagTecBuffer TecBuffer;
 typedef TecBuffer* TecBufferPtr;
@@ -60,6 +58,8 @@ typedef struct tagTecBuffer {
     size_t capacity;
     size_t block_size;
 } TecBuffer;
+
+#define TecBuffer_ptr(ptr) ((TecBufferPtr)(ptr))
 
 // Returns the initialized buffer. See `TecBuffer_init()`.
 TECC_API TecBuffer TecBuffer_create_(size_t initial_size, size_t block_size);
@@ -99,14 +99,14 @@ TECC_API size_t TecBuffer_write(TecBufferPtr buf, const void *src, size_t len);
 TECC_API size_t TecBuffer_read(TecBufferPtr buf, void* dst, size_t len);
 
 // Returns the current position indicator (mimicking `ftell`).
-#define TecBuffer_tell(buf) ((buf)->pos)
+#define TecBuffer_tell(buf) (TecBuffer_ptr(buf)->pos)
 
 // Returns the size of the buffer.
-#define TecBuffer_size(buf) ((buf)->size)
+#define TecBuffer_size(buf) (TecBuffer_ptr(buf)->size)
 
 // Get a read-only view of the internal buffer.
 // Returns a const pointer to buffer data. May be NULL.
-#define TecBuffer_data(buf) ((const char*)((buf)->data))
+#define TecBuffer_data(buf) ((const char*)(TecBuffer_ptr(buf)->data))
 
 // Resets the buffer position indicator. Returns TECC_EOB (-1) if out of bound.
 TECC_API int TecBuffer_seek(TecBufferPtr buf, long offset, int origin);
@@ -116,8 +116,13 @@ TECC_API int TecBuffer_seek(TecBufferPtr buf, long offset, int origin);
 // Returns number of bytes written.
 TECC_API size_t TecBuffer_puts(TecBufferPtr buf, const char* str);
 
+/*======================================================================
+*
+*                         Debugging
+*
+ *====================================================================*/
+
 // Returns buffer internal parameters as a JSON string.
-// Helpful for debugging.
 TECC_API TecBuffer TecBuffer_json(TecBufferPtr buf, const char* name, size_t maxlen);
 
 // Returns hexadecimal representation of `src` starting at a `start` position.

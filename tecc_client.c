@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-23 02:37:36 by magnolia>
+// Time-stamp: <Last changed 2026-04-25 16:02:47 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -45,11 +45,15 @@ TECC_IMPL void TecClientParams_init_(TecClientParamsPtr self) {
 
 static void start_(TecServicePtr svc, TecSignalPtr sig_started, int* error) {
     TecClientPtr self = TecClient_ptr(svc);
-    *error = TecSocket_connect(&self->sock);
-    if (!*error) {
+    int err = TecSocket_open(&self->sock);
+    if (!err) {
+        err = TecSocket_connect(&self->sock);
+    }
+    if (!err) {
         // Allocate the buffer.
         TecBuffer_init(&self->buffer, self->socket_params->buffer_size, self->socket_params->buffer_size); // Empty buffer.
     }
+    *error = err;
     TecSignal_set(sig_started);
 }
 

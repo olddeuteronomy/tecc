@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-21 14:16:40 by magnolia>
+// Time-stamp: <Last changed 2026-04-25 12:24:36 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -17,7 +17,9 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+#include "tecc/tecc_daemon.h"
 #include "tecc/tecc_def.h"
+#include "tecc/tecc_message.h"
 #include "tecc/tecc_rpc.h"
 #include "tecc/tecc_trace.h"
 #include "tecc/tecc_signal.h"
@@ -72,9 +74,14 @@ static void on_msg(TecMsgPtr msg, TecWorkerPtr w) {
 
 // Processes an RPC message.
 static void on_rpc(TecRPCPtr rpc, TecWorkerPtr w) {
-    // RPC request is not supported in Worker.
-    (void)w;
-    rpc->error = TECC_ERR_NOT_SUPPORTED;
+    TecCallbackFunc callback = (TecCallbackFunc)TecMap_get(&w->callbacks, TecMsg_tag(rpc));
+    if (callback) {
+        // Process as a "normal" message.
+        callback(TecMsg_ptr(rpc), w);
+    }
+    else {
+        rpc->error = TECC_ERR_HANDLER_NOT_FOUND;
+    }
     TecSignal_set(rpc->sig_ready);
     // We do not deallocate an RPC request!
 }

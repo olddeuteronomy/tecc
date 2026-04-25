@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-21 13:46:46 by magnolia>
+// Time-stamp: <Last changed 2026-04-23 11:10:37 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -62,8 +62,6 @@ TECC_IMPL void tec_trace_exit(TecTracerPtr tr) {
 
 
 TECC_IMPL void tec_trace(TecTracerPtr tr, const char* fmt, ...) {
-    (void)tr;
-    (void)fmt;
     if (!guard_.ok) return;
     TecMutex_lock(&guard_);
     printf("%*s* %s: ", level, zs, tr->name);

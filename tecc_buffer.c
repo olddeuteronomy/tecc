@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-17 13:50:04 by magnolia>
+// Time-stamp: <Last changed 2026-04-24 16:11:31 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -37,11 +37,11 @@ TECC_IMPL void TecBuffer_set_error_handler(TecBufferErrorFunc handler) {
 
 #define ON_ERROR(b) if (on_buffer_error) on_buffer_error(b)
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *                          Helpers
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 TECC_unused static void dump(const char* title, TecBufferPtr buf) {
     printf("%s: {data=%p blk_size=%lu cap=%lu size=%lu pos=%ld}\n",
@@ -84,11 +84,11 @@ static void ensure_capacity(TecBufferPtr buf, long pos, size_t len) {
     }
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
-*                      Expandable buffer
+*                       TecBuffer API
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 TECC_IMPL TecBuffer TecBuffer_create_(size_t initial_size, size_t block_size) {
     TecBuffer b;
@@ -152,10 +152,10 @@ TECC_IMPL size_t TecBuffer_read(TecBufferPtr buf, void* dst, size_t len) {
 // Returns TECC_EOB (-1) if out of bound.
 TECC_IMPL int TecBuffer_seek(TecBufferPtr buf, long offset, int origin) {
     long new_pos = 0;
-    if (origin == tecSeekSet) {
+    if (origin == kTecSeekSet) {
         new_pos = offset;
     }
-    else if (origin == tecSeekCur) {
+    else if (origin == kTecSeekCur) {
         new_pos = buf->pos + offset;
     }
     else {
@@ -193,11 +193,12 @@ TECC_IMPL size_t TecBuffer_puts(TecBufferPtr buf, const char* str) {
     return TecBuffer_write(buf, str, len + 1);
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
-*                            JSON
+*                          Debugging
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
+
 #define ENQUOTE(s) "\"" #s "\""
 #define COMMA ", "
 
@@ -230,11 +231,6 @@ TECC_IMPL TecBuffer TecBuffer_json(TecBufferPtr buf, const char* name, size_t ma
     return dst;
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*
-*                           Hex dump
-*
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 static char table[] = "0123456789ABCDEF";
 

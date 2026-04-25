@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-19 10:32:29 by magnolia>
+// Time-stamp: <Last changed 2026-04-25 12:22:28 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -52,6 +52,8 @@ typedef void (*TecCallbackFunc)(TecMsgPtr, void*);
 *                          Message API
 *
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+#define TecMsg_ptr(ptr) ((TecMsgPtr)(ptr))
 
 // Message type as string.
 #define TecMsg_type(type) type##_msg_
