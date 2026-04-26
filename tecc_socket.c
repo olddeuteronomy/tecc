@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-25 16:14:27 by magnolia>
+// Time-stamp: <Last changed 2026-04-26 03:53:22 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -28,6 +28,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include <stdio.h>
 
 #include <netdb.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
 
 #include "tecc/tecc_def.h"   // IWYU pragma: keep
@@ -79,7 +80,7 @@ TECC_IMPL void TecSocketParams_init(TecSocketParamsPtr self) {
     self->socktype = kTecDefaultSockType;
     self->protocol = kTecDefaultProtocol;
     self->flags = kTecDefaultClientFlags;
-    self->buffer_size = TECC_SOCKET_BUFFER_SIZE;
+    self->buffer_size = TECC_SOCK_BUFFER_SIZE;
     // Server parameters.
     self->queue_size = kTecDefaultConnQueueSize;
     self->opt_reuse_addr = kTecDefaultOptReuseAddress;
@@ -110,6 +111,8 @@ TECC_IMPL void TecSocket_init_(TecSocketPtr sock, TecSocketParamsPtr params) {
     sock->pai = NULL;
     sock->params = params;
     TecBuffer_init(&sock->buf); // Empty buffer, no memory allocated.
+    sock->in.port = TECC_EOF;
+    sock->in.addr[0] = 0;
 }
 
 
@@ -127,7 +130,11 @@ TECC_IMPL int TecSocket_open(TecSocketPtr sock) {
         return ENOTSOCK;
     }
     int fd = TECC_EOF;
-    struct addrinfo hints = { .ai_socktype = SOCK_STREAM };
+    struct addrinfo hints = {
+        .ai_family = sock->params->family,
+        .ai_socktype = sock->params->socktype,
+        .ai_flags = sock->params->flags // AI_PASSIVE for servers.
+    };
     struct addrinfo *res = NULL;
     int err = 0;
     char port_str[16];
@@ -186,6 +193,7 @@ TECC_IMPL int TecSocket_connect(TecSocketPtr sock) {
 
 // Set default server socket options.
 TECC_IMPL int TecSocket_set_options(TecSocketPtr sock) {
+    TECC_TRACE_ENTER("Socket::set_options()");
     int err = 0;
     int res = 0;
     if (TecSocket_is_valid(sock) && TecSocket_is_server(sock)) {
@@ -200,14 +208,114 @@ TECC_IMPL int TecSocket_set_options(TecSocketPtr sock) {
             err = errno;
         }
     }
+    TECC_TRACE_EXIT();
     return err;
+}
+
+
+// Server: bind a name to the listening socket.
+TECC_IMPL int TecSocket_bind(TecSocketPtr sock) {
+    TECC_TRACE_ENTER("Socket::bind()");
+    int err = 0;
+    if (TecSocket_is_valid(sock) && sock->pai) {
+        if (bind(sock->fd, sock->pai->ai_addr, sock->pai->ai_addrlen) == -1) {
+            err = errno;
+        }
+    }
+    else {
+        err = EBADF;
+    }
+    if (err) {
+        TECC_TRACE("!!! (%d) Binding to %s:%d failed.\n",
+                   err, sock->params->addr, sock->params->port);
+    }
+    else {
+        TECC_TRACE("Bounded to %s:%d OK.\n",
+                   sock->params->addr, sock->params->port);
+    }
+    TECC_TRACE_EXIT();
+    return err;
+}
+
+
+// Server: listen for connections on the socket.
+TECC_IMPL int TecSocket_listen(TecSocketPtr sock) {
+    TECC_TRACE_ENTER("Socket::listen()");
+    int err = 0;
+    if (TecSocket_is_valid(sock)) {
+        if (listen(sock->fd, sock->params->queue_size) == -1) {
+            err = errno;
+        }
+    }
+    else {
+        err = EBADF;
+    }
+    if (err) {
+        TECC_TRACE("!!! (%d) Listening on %s:%d failed.\n",
+                   err, sock->params->addr, sock->params->port);
+    }
+    else {
+        TECC_TRACE("Listening on %s:%d OK.\n",
+                   sock->params->addr, sock->params->port);
+    }
+    TECC_TRACE_EXIT();
+    return err;
+}
+
+
+static void get_socket_info(TecSocketPtr sock, struct sockaddr_storage* client_addr) {
+    sock->in.port = -1;
+    if (client_addr->ss_family == AF_INET) {
+        // IPv4
+        struct sockaddr_in *s = (struct sockaddr_in*)&client_addr;
+        inet_ntop(AF_INET, &s->sin_addr, sock->in.addr, TECC_SOCK_ADDRLEN);
+        sock->in.port = ntohs(s->sin_port);
+    }
+    else if (client_addr->ss_family == AF_INET6) {
+        // IPv6
+        struct sockaddr_in6 *s = (struct sockaddr_in6*)&client_addr;
+        inet_ntop(AF_INET6, &s->sin6_addr, sock->in.addr, TECC_SOCK_ADDRLEN);
+        sock->in.port = ntohs(s->sin6_port);
+    }
+}
+
+
+// Server: Accept one incoming connection (blocking).
+// Returns a new client socket.
+TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock) {
+    TECC_TRACE_ENTER("Socket::accept()");
+    TecSocket cli = {0};
+    TecSocket_init(&cli, NULL);
+    struct sockaddr_storage cli_addr = {0};
+    socklen_t sin_size = sizeof(struct sockaddr_storage);
+    int err = 0;
+    cli.fd = accept(sock->fd, (struct sockaddr *)&cli_addr, &sin_size);
+    // Check result.
+    if (cli.fd == TECC_EOF) {
+        err = errno;
+        if (err == EINVAL || err == EINTR || err == EBADF) {
+            TECC_TRACE("Polling interrupted by signal %d.\n", err);
+        }
+        else {
+            TECC_TRACE("!!! Failed with errno=%d.\n", err);
+        }
+    }
+    else {
+        // Get incoming address and port number.
+        get_socket_info(&cli, &cli_addr);
+        TECC_TRACE("Connection from %s:%d OK.\n",
+                   cli.in.addr, cli.in.port);
+    }
+
+    TECC_TRACE_EXIT();
+    return cli;
 }
 
 
 // Close socket.
 TECC_IMPL void TecSocket_close(TecSocketPtr sock) {
-    TECC_TRACE_ENTER("Socket::close()");
     if (sock->fd != TECC_EOF) {
+        TECC_TRACE_ENTER("Socket::close()");
         shutdown(sock->fd, SHUT_RDWR);
         close(sock->fd);
         sock->fd = EOF;
@@ -215,8 +323,8 @@ TECC_IMPL void TecSocket_close(TecSocketPtr sock) {
             freeaddrinfo(sock->pai);
             sock->pai = NULL;
         }
+        TECC_TRACE_EXIT();
     }
-    TECC_TRACE_EXIT();
 }
 
 

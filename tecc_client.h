@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-23 02:08:34 by magnolia>
+// Time-stamp: <Last changed 2026-04-25 23:33:59 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -53,11 +53,11 @@ TECC_API void TecClientParams_init_(TecClientParamsPtr);
 #define TecClientParams_done(ptr) ((void)(ptr))
 #define TecClientParams_done_(ptr) ((void)(ptr))
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *              BSD-socket TecClient, inherited from TecService
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 typedef struct tagTecClient TecClient;
 typedef TecClient* TecClientPtr;
@@ -70,11 +70,11 @@ typedef struct tagTecClient {
     TecBuffer buffer;
 } TecClient;
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *                       BSD-socket TecClient API
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 #define TecClient_ptr(ptr) ((TecClientPtr)(ptr))
 

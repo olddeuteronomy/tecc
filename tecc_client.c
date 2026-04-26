@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-25 16:02:47 by magnolia>
+// Time-stamp: <Last changed 2026-04-25 23:31:29 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -16,17 +16,6 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
-#include "tecc/tecc_signal.h"
-#include "tecc/tecc_socket.h"
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L   // This line fixes the "storage size of ‘hints’ isn’t known" issue.
-#endif
-
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <netdb.h>
-
 #include "tecc/tecc_def.h"
 #include "tecc/tecc_trace.h" // IWYU pragma: keep
 #include "tecc/tecc_client.h"
@@ -51,7 +40,9 @@ static void start_(TecServicePtr svc, TecSignalPtr sig_started, int* error) {
     }
     if (!err) {
         // Allocate the buffer.
-        TecBuffer_init(&self->buffer, self->socket_params->buffer_size, self->socket_params->buffer_size); // Empty buffer.
+        TecBuffer_init(&self->buffer,
+                       self->socket_params->buffer_size,
+                       self->socket_params->buffer_size);
     }
     *error = err;
     TecSignal_set(sig_started);

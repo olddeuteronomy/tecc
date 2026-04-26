@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-25 16:22:49 by magnolia>
+// Time-stamp: <Last changed 2026-04-26 03:45:52 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -26,7 +26,10 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #define TECC_MAX_URI_LEN 256
 
 // Default socket buffer size.
-#define TECC_SOCKET_BUFFER_SIZE 1024
+#define TECC_SOCK_BUFFER_SIZE 1024
+
+// Socket address info.
+#define TECC_SOCK_ADDRLEN 56
 
 // End of stream.
 #define TECC_EOF (-1)
@@ -117,17 +120,26 @@ TECC_API void TecSocketParams_done(TecSocketParamsPtr self);
 *
  *====================================================================*/
 
+// Forward reference.
 struct addrinfo;
+
+// 60 bytes.
+typedef struct tagTecSockAddr {
+    int port;
+    char addr[TECC_SOCK_ADDRLEN];
+} TecSockAddr;
 
 typedef struct tagTecSocket TecSocket;
 typedef TecSocket* TecSocketPtr;
 
+// 128 bytes.
 typedef struct tagTecSocket {
     int fd;
     int flags;
     struct addrinfo* pai;
     TecBuffer buf;
     TecSocketParamsPtr params;
+    TecSockAddr in; // Incoming connection (server only).
 } TecSocket;
 
 /*======================================================================
@@ -138,10 +150,16 @@ typedef struct tagTecSocket {
 
 #define TecSocket_ptr(ptr) ((TecSocketPtr)(ptr))
 
-// Initialize the socket.
+// Initialize the socket -- client version.
 #define TecSocket_init(sock, params)\
     TecSocket_init_(TecSocket_ptr(sock), TecSocketParams_ptr(params))
 TECC_API void TecSocket_init_(TecSocketPtr, TecSocketParamsPtr);
+
+// Initialize the socket -- server version.
+#define TecSocket_init_server(sock, params) do {\
+    TecSocket_init(sock, params);\
+    TecSocket_ptr(sock)->params->flags = kTecDefaultServerFlags;\
+    } while(0)
 
 // Destructor.
 #define TecSocket_done(sock) TecSocket_done_(TecSocket_ptr(sock))
@@ -161,6 +179,12 @@ TECC_API int TecSocket_connect(TecSocketPtr);
 #define TecSocket_is_server(ptr) (TecSocket_ptr(ptr)->flags & kTecDefaultServerFlags)
 
 #define TecSocket_is_valid(ptr) (TecSocket_ptr(ptr)->fd != TECC_EOF)
+
+// Server: bind a name to the listening socket.
+TECC_API int TecSocket_bind(TecSocketPtr);
+
+// Server: listen for connections on the socket.
+TECC_API int TecSocket_listen(TecSocketPtr);
 
 // Closes the socket.
 TECC_API void TecSocket_close(TecSocketPtr);
