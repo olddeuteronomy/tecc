@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-26 03:53:22 by magnolia>
+// Time-stamp: <Last changed 2026-04-27 15:49:07 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -16,6 +16,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
+#include "tecc/tecc_buffer.h"
 #ifdef __gnu_linux__
 // This lines fixes the issue with SO_REUSEPORT on Linux.
 #define _GNU_SOURCE
@@ -73,7 +74,8 @@ TECC_unused const int kTecDefaultConnQueueSize = SOMAXCONN;
 
 // Initialize with default values.
 TECC_IMPL void TecSocketParams_init(TecSocketParamsPtr self) {
-    strncpy(self->addr, kTecLocalHost, TECC_MAX_URI_LEN-1);
+    // 127.0.0.1 by default.
+    strncpy(self->addr, kTecLocalAddr, TECC_MAX_URI_LEN-1);
     self->addr[TECC_MAX_URI_LEN-1] = 0;
     self->port = kTecDefaultPort;
     self->family = kTecDefaultFamily;
@@ -110,15 +112,16 @@ TECC_IMPL void TecSocket_init_(TecSocketPtr sock, TecSocketParamsPtr params) {
     sock->flags = 0;
     sock->pai = NULL;
     sock->params = params;
-    TecBuffer_init(&sock->buf); // Empty buffer, no memory allocated.
-    sock->in.port = TECC_EOF;
+    TecBuffer_init(&sock->buf, 0, params->buffer_size); // Empty buffer, no memory allocated.
+    sock->in.port = -1;
     sock->in.addr[0] = 0;
 }
 
 
 TECC_IMPL void TecSocket_done_(TecSocketPtr sock) {
     TecSocket_close(sock);
-    // We do not destroy the buffer!
+    // TODO: We do not destroy the buffer!
+    TecBuffer_done(&sock->buf);
 }
 
 
@@ -146,7 +149,7 @@ TECC_IMPL int TecSocket_open(TecSocketPtr sock) {
                        err, sock->params->addr, sock->params->port);
     }
     else {
-        TECC_TRACE("Address resolved OK.\n");
+        TECC_TRACE("Address %s:%d resolved OK.\n", sock->params->addr, sock->params->port);
         // Open the socket.
         fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
         if (fd == TECC_EOF) {
@@ -157,7 +160,7 @@ TECC_IMPL int TecSocket_open(TecSocketPtr sock) {
         else {
             sock->fd = fd;
             sock->pai = res;
-            TECC_TRACE("Socket opened OK.\n");
+            TECC_TRACE("Socket FD=%d opened OK.\n", sock->fd);
         }
     }
     TECC_TRACE_EXIT();
@@ -196,16 +199,27 @@ TECC_IMPL int TecSocket_set_options(TecSocketPtr sock) {
     TECC_TRACE_ENTER("Socket::set_options()");
     int err = 0;
     int res = 0;
+    TECC_TRACE("FD=%d: `flags` is set to 0x%04x.\n", sock->fd, sock->params->flags);
     if (TecSocket_is_valid(sock) && TecSocket_is_server(sock)) {
+        // SO_REUSEADDR
         res = setsockopt(sock->fd, SOL_SOCKET, SO_REUSEADDR,
                    &sock->params->opt_reuse_addr, sizeof(int));
         if (res < 0) {
             err = errno;
+            TECC_TRACE("SO_REUSEADDR failed with err=%d.\n", err);
         }
+        else {
+            TECC_TRACE("SO_REUSEADDR set to %d.\n", sock->params->opt_reuse_addr);
+        }
+        // SO_REUSEPORT
         res = setsockopt(sock->fd, SOL_SOCKET, SO_REUSEPORT,
                        &sock->params->opt_reuse_port, sizeof(int));
         if (res < 0) {
             err = errno;
+            TECC_TRACE("SO_REUSEPORT failed with err=%d.\n", err);
+        }
+        else {
+            TECC_TRACE("SO_REUSEPORT set to %d.\n", sock->params->opt_reuse_port);
         }
     }
     TECC_TRACE_EXIT();
@@ -255,6 +269,8 @@ TECC_IMPL int TecSocket_listen(TecSocketPtr sock) {
                    err, sock->params->addr, sock->params->port);
     }
     else {
+        // Allocate server's buffer.
+        TecBuffer_init(&sock->buf, sock->params->buffer_size, sock->params->buffer_size);
         TECC_TRACE("Listening on %s:%d OK.\n",
                    sock->params->addr, sock->params->port);
     }
@@ -285,7 +301,8 @@ static void get_socket_info(TecSocketPtr sock, struct sockaddr_storage* client_a
 TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock) {
     TECC_TRACE_ENTER("Socket::accept()");
     TecSocket cli = {0};
-    TecSocket_init(&cli, NULL);
+    // Initialize the client with server's parameters.
+    TecSocket_init(&cli, sock->params);
     struct sockaddr_storage cli_addr = {0};
     socklen_t sin_size = sizeof(struct sockaddr_storage);
     int err = 0;
@@ -303,8 +320,7 @@ TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock) {
     else {
         // Get incoming address and port number.
         get_socket_info(&cli, &cli_addr);
-        TECC_TRACE("Connection from %s:%d OK.\n",
-                   cli.in.addr, cli.in.port);
+        TECC_TRACE("Connection from %s:%d OK.\n", cli.in.addr, cli.in.port);
     }
 
     TECC_TRACE_EXIT();
@@ -316,7 +332,7 @@ TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock) {
 TECC_IMPL void TecSocket_close(TecSocketPtr sock) {
     if (sock->fd != TECC_EOF) {
         TECC_TRACE_ENTER("Socket::close()");
-        shutdown(sock->fd, SHUT_RDWR);
+        /* shutdown(sock->fd, SHUT_RDWR); */
         close(sock->fd);
         sock->fd = EOF;
         if (sock->pai) {
@@ -330,7 +346,7 @@ TECC_IMPL void TecSocket_close(TecSocketPtr sock) {
 
 // If `len' is 0, reads null-terminated string. Returns 0 on success.
 TECC_IMPL int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst, size_t len) {
-    TECC_TRACE_ENTER("Socket::recv()");
+    TECC_TRACE_ENTER("Socket::read()");
     size_t total_received = 0;
     ssize_t received = 0;
     bool eot = false; // End of transfer.
@@ -392,7 +408,7 @@ TECC_IMPL int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst, size_t len) {
 // Writes the `src` buffer to the SOCK_STREAM socket.
 // Returns 0 on success or an error code from <errno.h>
 TECC_IMPL int TecSocket_write(TecSocketPtr sock, TecBufferPtr src) {
-    TECC_TRACE_ENTER("Socket::send()");
+    TECC_TRACE_ENTER("Socket::write()");
     ssize_t sent = 0;
     int err = 0;
     //
@@ -414,7 +430,7 @@ TECC_IMPL int TecSocket_write(TecSocketPtr sock, TecBufferPtr src) {
                        sock->params->addr, sock->params->port, err, sent, src->size);
         }
     }
-    TECC_TRACE("%s:%d <-- SEND %ld bytes.\n",
+    TECC_TRACE("%s:%d <-- SENT %ld bytes.\n",
                sock->params->addr, sock->params->port, sent);
     TECC_TRACE_EXIT();
     return err;

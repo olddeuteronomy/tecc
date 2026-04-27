@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-26 03:45:52 by magnolia>
+// Time-stamp: <Last changed 2026-04-27 14:56:51 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -157,8 +157,9 @@ TECC_API void TecSocket_init_(TecSocketPtr, TecSocketParamsPtr);
 
 // Initialize the socket -- server version.
 #define TecSocket_init_server(sock, params) do {\
+    TecSocketParams_set_addr(TecSocketParams_ptr(params), kTecAnyAddr);\
+    TecSocketParams_ptr(params)->flags = kTecDefaultServerFlags;\
     TecSocket_init(sock, params);\
-    TecSocket_ptr(sock)->params->flags = kTecDefaultServerFlags;\
     } while(0)
 
 // Destructor.
@@ -176,15 +177,19 @@ TECC_API int TecSocket_set_options(TecSocketPtr);
 // Currently, only SOCK_STREAM sockets (TCP) are supported.
 TECC_API int TecSocket_connect(TecSocketPtr);
 
-#define TecSocket_is_server(ptr) (TecSocket_ptr(ptr)->flags & kTecDefaultServerFlags)
+#define TecSocket_is_server(ptr) ((TecSocket_ptr(ptr)->params->flags) & kTecDefaultServerFlags)
 
-#define TecSocket_is_valid(ptr) (TecSocket_ptr(ptr)->fd != TECC_EOF)
+#define TecSocket_is_valid(ptr) ((TecSocket_ptr(ptr)->fd) != TECC_EOF)
 
 // Server: bind a name to the listening socket.
 TECC_API int TecSocket_bind(TecSocketPtr);
 
 // Server: listen for connections on the socket.
 TECC_API int TecSocket_listen(TecSocketPtr);
+
+// Server: Accept one incoming connection (blocking).
+// Returns a new client socket, possible with fd=-1.
+TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock);
 
 // Closes the socket.
 TECC_API void TecSocket_close(TecSocketPtr);
