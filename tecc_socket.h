@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-28 03:39:46 by magnolia>
+// Time-stamp: <Last changed 2026-04-28 12:55:17 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -28,7 +28,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 // Default socket buffer size.
 #define TECC_SOCK_BUFFER_SIZE 1024
 
-// Socket address info.
+// Socket address info. Should be enough to store IPv6 address.
 #define TECC_SOCK_ADDRLEN 56
 
 // End of stream.
@@ -88,28 +88,26 @@ extern const int kTecDefaultConnQueueSize;
 typedef struct tagTecSocketParams TecSocketParams;
 typedef TecSocketParams* TecSocketParamsPtr;
 
+// 56 bytes.
 typedef struct tagTecSocketParams {
     // Common parameters.
-    char addr[TECC_MAX_URI_LEN];
+    const char* addr;       // Host address [127.0.0.1].
     int port;               // Port number to connect to or bind.
-    int family;             // Address family (AF_INET, AF_INET6, AF_UNSPEC, ...).
-    int socktype;           // Socket type (SOCK_STREAM, SOCK_DGRAM, ...).
+    int family;             // Address family [AF_UNSPEC].
+    int socktype;           // Socket type [SOCK_STREAM].
     int protocol;           // Protocol (usually 0, any appropriate).
-    int flags;              // AI_PASSIVE for servers.
+    int flags;              // AI_PASSIVE for servers, 0 for clients.
     size_t buffer_size;     // Size of internal buffer for send/recv operations.
     // Server parameters.
-    int queue_size;         // Maximum backlog for listen ().
-    int opt_reuse_addr;     // Socket option SO_REUSEADDR (0 = no, 1 = yes).
-    int opt_reuse_port;     // Socket option SO_REUSEPORT (0 = no, 1 = yes).
+    int queue_size;         // Maximum backlog for `listen()` [4096].
+    int opt_reuse_addr;     // Socket option SO_REUSEADDR [0]
+    int opt_reuse_port;     // Socket option SO_REUSEPORT [1]
 } TecSocketParams;
 
 #define TecSocketParams_ptr(ptr) ((TecSocketParamsPtr)(ptr))
 
 // Initialize with default values.
 TECC_API void TecSocketParams_init(TecSocketParamsPtr self);
-
-// Set address.
-TECC_API void TecSocketParams_setaddr(TecSocketParamsPtr self, const char* addr);
 
 // Destructor. Does nothing by default.
 TECC_API void TecSocketParams_done(TecSocketParamsPtr self);
@@ -134,12 +132,12 @@ typedef TecSocket* TecSocketPtr;
 
 // 128 bytes.
 typedef struct tagTecSocket {
-    int fd;
-    int flags;
-    struct addrinfo* pai;
-    TecBuffer buf;
-    TecSocketParamsPtr params;
-    TecSockAddr in; // Incoming connection (server only).
+    int fd;                    // Socket FD.
+    int flags;                 // Flags.
+    struct addrinfo* pai;      // Internal host addrinfo.
+    TecBuffer buf;             // Internal buffer for read/write operations.
+    TecSocketParamsPtr params; // Host parameters.
+    TecSockAddr in_conn;       // Parameters of incoming connection (server only).
 } TecSocket;
 
 /*======================================================================
@@ -157,10 +155,10 @@ TECC_API void TecSocket_init_(TecSocketPtr, TecSocketParamsPtr);
 
 // Initialize the socket -- server version.
 #define TecSocket_init_server(sock, params) do {\
-    TecSocketParams_setaddr(TecSocketParams_ptr(params), kTecAnyAddr);\
+    TecSocketParams_ptr(params)->addr = kTecAnyAddr;\
     TecSocketParams_ptr(params)->flags = kTecDefaultServerFlags;\
     TecSocket_init(sock, params);\
-    } while(0)
+    } while (0)
 
 // Destructor.
 #define TecSocket_done(sock) TecSocket_done_(TecSocket_ptr(sock))
@@ -184,7 +182,7 @@ TECC_API int TecSocket_connect(TecSocketPtr);
 
 #define TecSocket_is_server(ptr) ((TecSocket_ptr(ptr)->params->flags) & kTecDefaultServerFlags)
 
-#define TecSocket_is_valid(ptr) ((TecSocket_ptr(ptr)->fd) != TECC_EOF)
+#define TecSocket_is_valid(ptr) ((TecSocket_ptr(ptr)->fd) != -1)
 
 // Server: bind a name to the listening socket.
 TECC_API int TecSocket_bind(TecSocketPtr);

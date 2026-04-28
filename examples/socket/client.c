@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-28 01:40:45 by magnolia>
+// Time-stamp: <Last changed 2026-04-28 13:03:57 by magnolia>
 
 #include "tecc/tecc_client.h"
 #include "tecc/tecc_service.h"
@@ -27,18 +27,24 @@ int run(TecServicePtr cli) {
     return err;
 }
 
+
+// Usage: socket [ADDR] [PORT]
+void parse_args(int argc, char* argv[], TecSocketParamsPtr params) {
+    if (argc > 1) {
+        params->addr = argv[1];
+    }
+    if (argc> 2) {
+        params->port = atoi(argv[2]);
+    }
+}
+
 int main(int argc, char* argv[]) {
     TECC_TRACE_INIT();
     TECC_TRACE_ENTER("main");
 
     TecSocketParams socket_params;
     TecSocketParams_init(&socket_params);
-    if (argc > 1) {
-        TecSocketParams_setaddr(&socket_params, argv[1]);
-    }
-    else {
-        TecSocketParams_setaddr(&socket_params, kTecLocalAddr);
-    }
+    parse_args(argc, argv, &socket_params);
 
     TecClientParams client_params;
     TecClientParams_init(&client_params);

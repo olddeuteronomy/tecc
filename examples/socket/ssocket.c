@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-04-28 03:26:09 by magnolia>
+// Time-stamp: <Last changed 2026-04-28 16:10:19 by magnolia>
 /*======================================================================
 *
-*  Tests TecSocket server.
+*                      Testing TecSocket server.
 *
  *====================================================================*/
 #include <stdbool.h>
@@ -11,12 +11,11 @@
 #include <signal.h>
 
 #include "tecc/tecc_buffer.h"
-#include "tecc/tecc_def.h"
 #include "tecc/tecc_socket.h"
 #include "tecc/tecc_trace.h"
 
 
-TECC_unused static atomic_bool running = true;
+static atomic_bool running = true;
 
 void handle_sigint(int sig) {
     (void)sig;
@@ -48,7 +47,7 @@ int run_server(TecSocketPtr sock) {
     while (atomic_load(&running)) {
         TecSocket cli = TecSocket_accept(sock);
         if (TecSocket_is_valid(&cli)) {
-            str.pos = 0;
+            TecBuffer_rewind(&str); // Reuse the incoming buffer.
             TecSocket_read(&cli, &str, 0);
             puts(TecBuffer_data(&str));
             TecSocket_close(&cli);
@@ -65,13 +64,12 @@ int run_server(TecSocketPtr sock) {
 // Usage: ssocket [ADDR] [PORT]
 void parse_args(int argc, char* argv[], TecSocketParamsPtr params) {
     if (argc > 1) {
-        TecSocketParams_setaddr(params, argv[1]);
+        params->addr = argv[1];
     }
     if (argc > 2) {
         params->port = atoi(argv[2]);
     }
 }
-
 
 
 int main(int argc, char* argv[]) {
@@ -83,9 +81,10 @@ int main(int argc, char* argv[]) {
 
     TecSocketParams params;
     TecSocketParams_init(&params);
+    parse_args(argc, argv, &params);
+    /* params.opt_reuse_addr = 1; */
     TecSocket sock;
     TecSocket_init_server(&sock, &params);
-    parse_args(argc, argv, &params);
 
     int err = run_server(&sock);
 

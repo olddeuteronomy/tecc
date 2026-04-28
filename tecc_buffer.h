@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-24 16:05:33 by magnolia>
+// Time-stamp: <Last changed 2026-04-28 03:52:20 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -45,12 +45,13 @@ enum {
 *
 *       Provides a growable in-memory buffer with an API similar to
 *           stdio FILE streams (read, write, seek, tell, etc.).
-*      The internal storage is automatically expanded as needed.
+*       The internal storage is automatically expanded as needed.
  *====================================================================*/
 
 typedef struct tagTecBuffer TecBuffer;
 typedef TecBuffer* TecBufferPtr;
 
+// 40 bytes.
 typedef struct tagTecBuffer {
     char* data;
     long pos;
@@ -100,6 +101,9 @@ TECC_API size_t TecBuffer_read(TecBufferPtr buf, void* dst, size_t len);
 
 // Returns the current position indicator (mimicking `ftell`).
 #define TecBuffer_tell(buf) (TecBuffer_ptr(buf)->pos)
+
+// Resets the current position indicator.
+#define TecBuffer_rewind(buf) TecBuffer_ptr(buf)->pos = 0
 
 // Returns the size of the buffer.
 #define TecBuffer_size(buf) (TecBuffer_ptr(buf)->size)

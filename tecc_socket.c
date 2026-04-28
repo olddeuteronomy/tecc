@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-28 03:37:49 by magnolia>
+// Time-stamp: <Last changed 2026-04-28 16:08:01 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -83,8 +83,7 @@ TECC_unused const int kTecDefaultConnQueueSize = SOMAXCONN;
 // Initialize with default values.
 TECC_IMPL void TecSocketParams_init(TecSocketParamsPtr self) {
     // 127.0.0.1 by default.
-    strncpy(self->addr, kTecLocalAddr, TECC_MAX_URI_LEN-1);
-    self->addr[TECC_MAX_URI_LEN-1] = 0;
+    self->addr = kTecLocalAddr;
     self->port = kTecDefaultPort;
     self->family = kTecDefaultFamily;
     self->socktype = kTecDefaultSockType;
@@ -95,12 +94,6 @@ TECC_IMPL void TecSocketParams_init(TecSocketParamsPtr self) {
     self->queue_size = kTecDefaultConnQueueSize;
     self->opt_reuse_addr = kTecDefaultOptReuseAddress;
     self->opt_reuse_port = kTecDefaultOptReusePort;
-}
-
-
-TECC_IMPL void TecSocketParams_setaddr(TecSocketParamsPtr self, const char* addr) {
-    strncpy(self->addr, addr, TECC_MAX_URI_LEN-1);
-    self->addr[TECC_MAX_URI_LEN-1] = 0;
 }
 
 
@@ -121,8 +114,8 @@ TECC_IMPL void TecSocket_init_(TecSocketPtr sock, TecSocketParamsPtr params) {
     sock->pai = NULL;
     sock->params = params;
     TecBuffer_init(&sock->buf, 0, params->buffer_size); // Empty buffer, no memory allocated.
-    sock->in.port = -1;
-    sock->in.addr[0] = 0;
+    sock->in_conn.port = -1;
+    sock->in_conn.addr[0] = 0;
 }
 
 
@@ -134,9 +127,9 @@ TECC_IMPL void TecSocket_done_(TecSocketPtr sock) {
 
 // Returns the actual address of the socket.
 TECC_IMPL const char* TecSocket_getaddr(TecSocketPtr sock) {
-    if (sock->in.port > 0) {
+    if (sock->in_conn.port > 0) {
         // Return incoming connection address.
-        return sock->in.addr;
+        return sock->in_conn.addr;
     }
     else {
         return sock->params->addr;
@@ -146,9 +139,9 @@ TECC_IMPL const char* TecSocket_getaddr(TecSocketPtr sock) {
 
 // Returns the actual port of the socket.
 TECC_IMPL int TecSocket_getport(TecSocketPtr sock) {
-    if (sock->in.port > 0) {
-        // Return incoming connection address.
-        return sock->in.port;
+    if (sock->in_conn.port > 0) {
+        // Return incoming connection port.
+        return sock->in_conn.port;
     }
     else {
         return sock->params->port;
@@ -306,20 +299,31 @@ TECC_IMPL int TecSocket_listen(TecSocketPtr sock) {
 }
 
 
-static void get_socket_info(TecSocketPtr sock, struct sockaddr_storage* client_addr) {
-    sock->in.port = -1;
-    if (client_addr->ss_family == AF_INET) {
+// Uses `getpeername` to obtain the actual peer socket info.
+static int get_socket_info(TecSocketPtr sock) {
+    struct sockaddr_storage client_addr = {0};
+    socklen_t size = sizeof(struct sockaddr_storage);
+    int err = getpeername(sock->fd, (struct sockaddr*)&client_addr, &size);
+    sock->in_conn.port = -1;
+    if (err == -1) {
+        return errno;
+    }
+    if (client_addr.ss_family == AF_INET) {
         // IPv4
         struct sockaddr_in *s = (struct sockaddr_in*)&client_addr;
-        inet_ntop(AF_INET, &s->sin_addr, sock->in.addr, INET_ADDRSTRLEN);
-        sock->in.port = ntohs(s->sin_port);
+        inet_ntop(AF_INET, &s->sin_addr, sock->in_conn.addr, INET_ADDRSTRLEN);
+        sock->in_conn.port = ntohs(s->sin_port);
     }
-    else if (client_addr->ss_family == AF_INET6) {
+    else if (client_addr.ss_family == AF_INET6) {
         // IPv6
         struct sockaddr_in6 *s = (struct sockaddr_in6*)&client_addr;
-        inet_ntop(AF_INET6, &s->sin6_addr, sock->in.addr, INET6_ADDRSTRLEN);
-        sock->in.port = ntohs(s->sin6_port);
+        inet_ntop(AF_INET6, &s->sin6_addr, sock->in_conn.addr, INET6_ADDRSTRLEN);
+        sock->in_conn.port = ntohs(s->sin6_port);
     }
+    else {
+        err = EPROTONOSUPPORT;
+    }
+    return err;
 }
 
 
@@ -330,11 +334,9 @@ TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock) {
     TecSocket cli = {0};
     // Initialize the client with server's parameters.
     TecSocket_init(&cli, sock->params);
-    struct sockaddr_storage cli_addr = {0};
-    socklen_t sin_size = sizeof(struct sockaddr_storage);
     int err = 0;
     // Wait for incomming connection.
-    cli.fd = accept(sock->fd, (struct sockaddr *)&cli_addr, &sin_size);
+    cli.fd = accept(sock->fd, NULL, NULL);
     // Check result.
     if (cli.fd == -1) {
         err = errno;
@@ -346,13 +348,17 @@ TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock) {
         }
     }
     else {
-        // Get incoming address and port number.
-        get_socket_info(&cli, &cli_addr);
-        // Use parent buffer.
-        cli.buf = sock->buf;
-        TECC_TRACE("Connection from %s:%d OK.\n", cli.in.addr, cli.in.port);
+        // Get peer address and port number.
+        err = get_socket_info(&cli);
+        if (err) {
+            TECC_TRACE("!!! (%d) Failed to obtain the peer name.\n", err);
+        }
+        else {
+            // By default, use the host buffer.
+            cli.buf = sock->buf;
+            TECC_TRACE("Connection from %s:%d OK.\n", cli.in_conn.addr, cli.in_conn.port);
+        }
     }
-
     TECC_TRACE_EXIT();
     return cli;
 }
@@ -428,9 +434,9 @@ TECC_IMPL int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst, size_t len) {
     }
     else if (len > 0  &&  total_received != len) {
         err = EIO;
-        TECC_TRACE("!!! %s:%d (%d) Partial read: %z bytes of %ld.\n",
-                   TecSocket_getaddr(sock), TecSocket_getport(sock),
-                   err, total_received, len);
+        TECC_TRACE("!!! %s:%d (%d) Partial read: %zd bytes of %zu.\n",
+                   TecSocket_getaddr(sock), TecSocket_getport(sock), err,
+                   total_received, len);
     }
     TECC_TRACE_EXIT();
     return err;
@@ -447,7 +453,6 @@ TECC_IMPL int TecSocket_write(TecSocketPtr sock, TecBufferPtr src) {
     // Write data to the socket.
     //
     if (src->size) {
-        /* sent = send(sock->fd, src->data, src->size, sock->flags); */
         sent = write(sock->fd, src->data, src->size);
         //
         // Check for errors.
@@ -459,9 +464,9 @@ TECC_IMPL int TecSocket_write(TecSocketPtr sock, TecBufferPtr src) {
         }
         else if (src->size != (size_t)sent) {
             err = EIO;
-            TECC_TRACE("!!! %s:%d (%d) Partial write: %zd bytes of %zd.\n",
-                       TecSocket_getaddr(sock), TecSocket_getport(sock),
-                       err, sent, src->size);
+            TECC_TRACE("!!! %s:%d (%d) Partial write: %zd bytes of %zu.\n",
+                       TecSocket_getaddr(sock), TecSocket_getport(sock), err,
+                       sent, src->size);
         }
     }
     TECC_TRACE("%s:%d <-- SENT %zd bytes.\n",

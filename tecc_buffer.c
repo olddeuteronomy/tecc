@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-24 16:11:31 by magnolia>
+// Time-stamp: <Last changed 2026-04-28 14:46:46 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -54,7 +54,6 @@ static bool realloc_buffer(TecBufferPtr buf, size_t new_capacity) {
     if (new_capacity <= buf->capacity ) {
         return true;
     }
-    buf->capacity = new_capacity;
     char* new_data = TECC_CALLOC(1, new_capacity);
     if (new_data == NULL) {
         return false;
@@ -64,6 +63,7 @@ static bool realloc_buffer(TecBufferPtr buf, size_t new_capacity) {
         memcpy(new_data, old_data, buf->size);
         TECC_FREE(old_data);
     }
+    buf->capacity = new_capacity;
     buf->data = new_data;
     return true;
 }
@@ -73,7 +73,9 @@ static void ensure_capacity(TecBufferPtr buf, long pos, size_t len) {
         return;
     }
     size_t new_capacity = (buf->capacity ? buf->capacity : buf->block_size);
-    new_capacity += ((pos + len) / buf->block_size) * buf->block_size;
+    if (buf->capacity) {
+        new_capacity += ((pos + len) / buf->block_size) * buf->block_size;
+    }
     while (new_capacity < buf->capacity ) {
         new_capacity += buf->block_size;
         // TODO: should we check for `new_capacity' overflows?
