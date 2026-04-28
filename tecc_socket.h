@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-27 14:56:51 by magnolia>
+// Time-stamp: <Last changed 2026-04-28 03:39:46 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -44,13 +44,13 @@ extern "C" {
 *
  *====================================================================*/
 
-// Server: IPv4 address to bind/accept connections from any interface ["0.0.0.0"].
+// Server: IPv4 address to bind/accept connections from IPv4 address ["0.0.0.0"].
 extern const char* const kTecAnyAddr;
 // Client: IPv4 loopback address ["127.0.0.1"].
 extern const char* const kTecLocalAddr;
-// Hostname that resolves to localhost for both IPv4 and IPv6 ["localhost"].
+// ["localhost"].
 extern const char* const kTecLocalHost;
-// Server: IPv6 address to bind/accept connections from any interface ["::"].
+// Server: IPv6 address to bind/accept connections from any IPv6 or IPv4 address ["::"].
 extern const char* const kTecAnyAddrIP6;
 // Client: IPv6 loopback address ["::1"].
 extern const char* const kTecLocalAddrIP6;
@@ -109,7 +109,7 @@ typedef struct tagTecSocketParams {
 TECC_API void TecSocketParams_init(TecSocketParamsPtr self);
 
 // Set address.
-TECC_API void TecSocketParams_set_addr(TecSocketParamsPtr self, const char* addr);
+TECC_API void TecSocketParams_setaddr(TecSocketParamsPtr self, const char* addr);
 
 // Destructor. Does nothing by default.
 TECC_API void TecSocketParams_done(TecSocketParamsPtr self);
@@ -157,7 +157,7 @@ TECC_API void TecSocket_init_(TecSocketPtr, TecSocketParamsPtr);
 
 // Initialize the socket -- server version.
 #define TecSocket_init_server(sock, params) do {\
-    TecSocketParams_set_addr(TecSocketParams_ptr(params), kTecAnyAddr);\
+    TecSocketParams_setaddr(TecSocketParams_ptr(params), kTecAnyAddr);\
     TecSocketParams_ptr(params)->flags = kTecDefaultServerFlags;\
     TecSocket_init(sock, params);\
     } while(0)
@@ -165,6 +165,11 @@ TECC_API void TecSocket_init_(TecSocketPtr, TecSocketParamsPtr);
 // Destructor.
 #define TecSocket_done(sock) TecSocket_done_(TecSocket_ptr(sock))
 TECC_API void TecSocket_done_(TecSocketPtr sock);
+
+// Returns the actual address of the socket.
+TECC_API const char* TecSocket_getaddr(TecSocketPtr);
+// Returns the actual port of the socket.
+TECC_API int TecSocket_getport(TecSocketPtr);
 
 // Resolves peer address and opens the socket. On success, returns 0 and sets socket FD.
 // Currently, only SOCK_STREAM sockets (TCP) are supported.

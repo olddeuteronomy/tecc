@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-25 16:17:49 by magnolia>
+// Time-stamp: <Last changed 2026-04-28 01:40:45 by magnolia>
 
 #include "tecc/tecc_client.h"
 #include "tecc/tecc_service.h"
@@ -34,10 +34,10 @@ int main(int argc, char* argv[]) {
     TecSocketParams socket_params;
     TecSocketParams_init(&socket_params);
     if (argc > 1) {
-        TecSocketParams_set_addr(&socket_params, argv[1]);
+        TecSocketParams_setaddr(&socket_params, argv[1]);
     }
     else {
-        TecSocketParams_set_addr(&socket_params, kTecLocalAddr);
+        TecSocketParams_setaddr(&socket_params, kTecLocalAddr);
     }
 
     TecClientParams client_params;

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-27 15:49:56 by magnolia>
+// Time-stamp: <Last changed 2026-04-28 03:26:09 by magnolia>
 /*======================================================================
 *
 *  Tests TecSocket server.
@@ -10,7 +10,6 @@
 #include <stdatomic.h>
 #include <signal.h>
 
-/* #include "tecc/tecc_buffer.h" */
 #include "tecc/tecc_buffer.h"
 #include "tecc/tecc_def.h"
 #include "tecc/tecc_socket.h"
@@ -37,22 +36,28 @@ int run_server(TecSocketPtr sock) {
         return err;
     }
 
+    // Using "pure" socket, we have to handle listening socket's buffer manually.
+    size_t bufsize = sock->params->buffer_size;
+    TecBuffer_init(&sock->buf, bufsize, bufsize);
+
+    // Buffer for incoming data.
+    TecBuffer str;
+    TecBuffer_init(&str, 80);
+
     // The simple polling incoming connections.
     while (atomic_load(&running)) {
         TecSocket cli = TecSocket_accept(sock);
         if (TecSocket_is_valid(&cli)) {
-            TecSocket_read(&cli, &sock->buf, 0);
-            puts(TecBuffer_data(&sock->buf));
+            str.pos = 0;
+            TecSocket_read(&cli, &str, 0);
+            puts(TecBuffer_data(&str));
             TecSocket_close(&cli);
             TecSocket_done(&cli);
         }
-}
+    }
 
-    // Using "pure" socket, we have to handle socket's buffer manually.
-    /* TecBuffer_init(&sock->buf, sock->params->buffer_size); */
-    // Send a string.
-    /* TecSocket_write_str(sock, "Hello world!\n"); */
-    /* TecBuffer_done(&sock->buf); */
+    TecBuffer_done(&str);
+    TecBuffer_done(&sock->buf);
     return err;
 }
 
@@ -60,7 +65,7 @@ int run_server(TecSocketPtr sock) {
 // Usage: ssocket [ADDR] [PORT]
 void parse_args(int argc, char* argv[], TecSocketParamsPtr params) {
     if (argc > 1) {
-        TecSocketParams_set_addr(params, argv[1]);
+        TecSocketParams_setaddr(params, argv[1]);
     }
     if (argc > 2) {
         params->port = atoi(argv[2]);
