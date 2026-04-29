@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-28 12:55:17 by magnolia>
+// Time-stamp: <Last changed 2026-04-29 11:11:35 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -118,26 +118,21 @@ TECC_API void TecSocketParams_done(TecSocketParamsPtr self);
 *
  *====================================================================*/
 
-// Forward reference.
+// Forward reference. We hide implementation details.
 struct addrinfo;
-
-// 60 bytes.
-typedef struct tagTecSockAddr {
-    int port;
-    char addr[TECC_SOCK_ADDRLEN];
-} TecSockAddr;
 
 typedef struct tagTecSocket TecSocket;
 typedef TecSocket* TecSocketPtr;
 
 // 128 bytes.
 typedef struct tagTecSocket {
-    int fd;                    // Socket FD.
-    int flags;                 // Flags.
-    struct addrinfo* pai;      // Internal host addrinfo.
-    TecBuffer buf;             // Internal buffer for read/write operations.
-    TecSocketParamsPtr params; // Host parameters.
-    TecSockAddr in_conn;       // Parameters of incoming connection (server only).
+    int fd;                       // Socket FD.
+    int port;                     // Port number.
+    char addr[TECC_SOCK_ADDRLEN]; // Socket address.
+    int flags;                    // Socket flags.
+    struct addrinfo* pai;         // Internal host addrinfo.
+    TecBuffer buf;                // Internal buffer for read/write operations.
+    TecSocketParamsPtr params;    // Host parameters.
 } TecSocket;
 
 /*======================================================================
@@ -164,11 +159,6 @@ TECC_API void TecSocket_init_(TecSocketPtr, TecSocketParamsPtr);
 #define TecSocket_done(sock) TecSocket_done_(TecSocket_ptr(sock))
 TECC_API void TecSocket_done_(TecSocketPtr sock);
 
-// Returns the actual address of the socket.
-TECC_API const char* TecSocket_getaddr(TecSocketPtr);
-// Returns the actual port of the socket.
-TECC_API int TecSocket_getport(TecSocketPtr);
-
 // Resolves peer address and opens the socket. On success, returns 0 and sets socket FD.
 // Currently, only SOCK_STREAM sockets (TCP) are supported.
 TECC_API int TecSocket_open(TecSocketPtr);
@@ -176,7 +166,7 @@ TECC_API int TecSocket_open(TecSocketPtr);
 // Sets socket options.
 TECC_API int TecSocket_set_options(TecSocketPtr);
 
-// Connects to the host.
+// Client: connect to the host.
 // Currently, only SOCK_STREAM sockets (TCP) are supported.
 TECC_API int TecSocket_connect(TecSocketPtr);
 
@@ -190,7 +180,7 @@ TECC_API int TecSocket_bind(TecSocketPtr);
 // Server: listen for connections on the socket.
 TECC_API int TecSocket_listen(TecSocketPtr);
 
-// Server: Accept one incoming connection (blocking).
+// Server: accept an incoming connection (blocking).
 // Returns a new client socket, possible with fd=-1.
 TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock);
 

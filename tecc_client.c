@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-25 23:31:29 by magnolia>
+// Time-stamp: <Last changed 2026-04-29 13:13:51 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -17,6 +17,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 #include "tecc/tecc_def.h"
+#include "tecc/tecc_tcp_server.h"
 #include "tecc/tecc_trace.h" // IWYU pragma: keep
 #include "tecc/tecc_client.h"
 
@@ -47,6 +48,7 @@ static void start_(TecServicePtr svc, TecSignalPtr sig_started, int* error) {
     *error = err;
     TecSignal_set(sig_started);
 }
+
 
 static void shutdown_(TecServicePtr svc, TecSignalPtr sig_stopped) {
     TecClientPtr self = TecClient_ptr(svc);

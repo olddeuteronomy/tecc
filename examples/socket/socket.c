@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-28 16:26:10 by magnolia>
+// Time-stamp: <Last changed 2026-04-29 10:51:56 by magnolia>
 /*======================================================================
 *
 *   A minimum TCP client using TecSocket API.
@@ -30,6 +30,7 @@ int run(TecSocketPtr sock) {
         err = TecSocket_connect(sock);
     }
     if (err) {
+        TecSocket_close(sock);
         return err;
     }
     // Sending a static string, we don't use socket's internal buffer.

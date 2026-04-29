@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-25 23:33:59 by magnolia>
+// Time-stamp: <Last changed 2026-04-29 11:34:32 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -31,11 +31,11 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 extern "C" {
 #endif
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *                    TecClient parameters
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 typedef struct tagTecClientParams TecClientParams;
 typedef TecClientParams* TecClientParamsPtr;
