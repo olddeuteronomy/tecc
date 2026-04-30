@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-29 14:49:38 by magnolia>
+// Time-stamp: <Last changed 2026-04-30 16:33:32 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -23,6 +23,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
 #include "tecc/tecc_def.h"
 #include "tecc/tecc_buffer.h"
+#include "tecc/tecc_message.h"
 #include "tecc/tecc_service.h"
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_socket.h"
@@ -75,7 +76,9 @@ typedef struct tagTecTCPServer {
     TecBuffer buffer;
     atomic_bool running;
     TecSignal sig_polling_stopped;
-    void (*poll)(TecTCPServerPtr, TecSignalPtr);
+    void (*poll)(TecTCPServerPtr);
+    // Processes incoming connection.
+    void (*process)(TecTCPServerPtr, TecSocketPtr);
 } TecTCPServer;
 
 /*======================================================================

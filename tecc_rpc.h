@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-17 13:50:01 by magnolia>
+// Time-stamp: <Last changed 2026-04-30 15:05:13 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -44,7 +44,7 @@ typedef TecMsgPtr TecReplyPtr;
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 // Should return 0 on success, or domain-specific error code.
-typedef int (*TecRPCHandlerFunc)(TecMsgPtr, TecMsgPtr, void*);
+typedef int (*TecRPCHandlerFunc)(TecRequestPtr, TecReplyPtr, void*);
 
 TECC_DEF_MESSAGE(TecRPC)
     TecRequestPtr request;

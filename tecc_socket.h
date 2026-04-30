@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-29 11:11:35 by magnolia>
+// Time-stamp: <Last changed 2026-04-30 12:06:27 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -150,8 +150,7 @@ TECC_API void TecSocket_init_(TecSocketPtr, TecSocketParamsPtr);
 
 // Initialize the socket -- server version.
 #define TecSocket_init_server(sock, params) do {\
-    TecSocketParams_ptr(params)->addr = kTecAnyAddr;\
-    TecSocketParams_ptr(params)->flags = kTecDefaultServerFlags;\
+    TecSocketParams_ptr(params)->flags |= kTecDefaultServerFlags;\
     TecSocket_init(sock, params);\
     } while (0)
 

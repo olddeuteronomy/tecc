@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-21 15:34:15 by magnolia>
+// Time-stamp: <Last changed 2026-04-30 15:22:54 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -35,7 +35,7 @@ typedef TecDaemon* TecDaemonPtr;
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 *
-*   A generic, thread-safe service with `start`/`shutdown` semantics
+*   A generic asynchronous service with `start`/`shutdown` semantics
 *         and `request`-`reply` RPC-style message handling.
 *
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -43,7 +43,8 @@ typedef TecDaemon* TecDaemonPtr;
 typedef struct tagTecService TecService;
 typedef TecService* TecServicePtr;
 
-typedef int (*TecServiceFunc)(TecRequestPtr, TecReplyPtr, void*);
+typedef void (*TecServiceFunc)(TecRequestPtr, TecReplyPtr, void*);
+typedef int (*TecServiceDispatchFunc)(TecServicePtr, TecRequestPtr, TecReplyPtr, void*);
 
 typedef struct tagTecService {
     // A pointer to the owning Daemon object (may be NULL).
@@ -58,8 +59,8 @@ typedef struct tagTecService {
     void (*shutdown)(TecServicePtr, TecSignalPtr);
     // RPC-style request handlers.
     TecMap handlers;
-    // Process an RPC request.
-    TecServiceFunc dispatch;
+    // Process a request.
+    TecServiceDispatchFunc dispatch;
     // Guard
     TecMutex mtx_guard;
     // Destructor.
@@ -91,6 +92,7 @@ TECC_API void TecService_register_(TecServicePtr self, const char* func_name, Te
 
 TECC_API int TecService_rpc_(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply);
 
+TECC_API TecServiceFunc TecService_get_handler(TecServicePtr, const char*);
 
 // Destructor.
 #define TecService_done_func(self) (TecService_ptr(self)->done)

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-21 15:01:48 by magnolia>
+// Time-stamp: <Last changed 2026-04-30 15:19:23 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -80,7 +80,7 @@ static int on_exit(TecWorkerPtr w) {
 static void on_rpc(TecRPCPtr rpc, TecWorkerPtr w) {
     TECC_TRACE_ENTER("ServiceWorker.on_rpc()");
     TecServiceWorkerPtr self = TecServiceWorker_ptr(w);
-    rpc->error = self->service->dispatch(rpc->request, rpc->reply, self->service);
+    rpc->error = self->service->dispatch(self->service, rpc->request, rpc->reply, self->service);
     TecSignal_set(rpc->sig_ready);
     TECC_TRACE_EXIT();
 }

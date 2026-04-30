@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-23 01:54:11 by magnolia>
+// Time-stamp: <Last changed 2026-04-30 15:25:51 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -37,25 +37,26 @@ static void shutdown(TecServicePtr self, TecSignalPtr sig_stopped) {
 }
 
 
-// Calls a registered RPC handler.
-static int dispatch(TecRequestPtr request, TecReplyPtr reply, void* args) {
-    TecServicePtr self = TecService_ptr(args);
+// Call a registered RPC service handler.
+static int dispatch(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply, void* args) {
     TecMutex_lock(&self->mtx_guard);
-    int error = TECC_ERR_HANDLER_NOT_FOUND;
-    TecServiceFunc handler = (TecServiceFunc)(TecMap_get(&self->handlers, TecMsg_tag(request)));
+    int error = 0;
+    TecServiceFunc handler = TecService_get_handler(self, TecMsg_tag(request));
     if (handler) {
-        error =  handler(request, reply, self);
+        handler(request, reply, args);
+    }
+    else {
+        error = TECC_ERR_HANDLER_NOT_FOUND;
     }
     TecMutex_unlock(&self->mtx_guard);
     return error;
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *                        TecService API
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+ *====================================================================*/
 
 TECC_IMPL void TecService_done_(TecServicePtr self) {
     TecMap_done(&self->handlers);
@@ -83,18 +84,24 @@ TECC_IMPL void TecService_register_(TecServicePtr self, const char* func_name, T
 
 
 TECC_IMPL int TecService_rpc_(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply) {
-    TECC_TRACE_ENTER("Service_rpc()");
+    TECC_TRACE_ENTER("Service::rpc()");
     int error = 0;
     if (self->owner) {
-        // Make a call throught the daemon.
+        // Make a call throught the daemon -- blocking.
         TECC_TRACE("Dispatching through the daemon...\n");
         error = TecDaemon_rpc(self->owner, request, reply);
     }
     else {
         // Dispatch through itself.
         TECC_TRACE("Dispatching through the service...\n");
-        error = self->dispatch(request, reply, self);
+        error = self->dispatch(self, request, reply, self);
     }
     TECC_TRACE_EXIT();
     return error;
+}
+
+
+TECC_IMPL TecServiceFunc TecService_get_handler(TecServicePtr self, const char* name) {
+    TecServiceFunc handler = (TecServiceFunc)(TecMap_get(&self->handlers, name));
+    return handler;
 }

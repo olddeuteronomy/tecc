@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-21 13:27:00 by magnolia>
+// Time-stamp: <Last changed 2026-04-30 14:19:08 by magnolia>
 
 #include <stdio.h>
 #include <threads.h>
@@ -25,14 +25,13 @@ TECC_END_MESSAGE(GaugeReply)
 
 
 // This handler will be called from the worker or service internal thread.
-static int on_gauge_request(GaugeRequestPtr request, GaugeReplyPtr reply, void* args) {
+static void on_gauge_request(GaugeRequestPtr request, GaugeReplyPtr reply, void* args) {
     TECC_TRACE_ENTER("on_gauge_request()");
     (void)args;
     reply->id = request->id;
     reply->units = 'C';
     reply->temperature = 36.7;
     TECC_TRACE_EXIT();
-    return 0;
 }
 
 // Analyze the result.
