@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-30 15:19:23 by magnolia>
+// Time-stamp: <Last changed 2026-05-01 01:59:10 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -59,7 +59,7 @@ static int on_init(TecWorkerPtr w) {
     return self->service->error;
 }
 
-// Finish the
+// Finish the service.
 static int on_exit(TecWorkerPtr w) {
     TecServiceWorkerPtr self = TecServiceWorker_ptr(w);
     TecThread exit_thread;

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-21 14:16:17 by magnolia>
+// Time-stamp: <Last changed 2026-05-01 12:32:53 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -92,6 +92,8 @@ TECC_API void TecWorker_register_(TecWorkerPtr w, const char* func_name, TecCall
 
 // Assigns an exit handler that called on Worker thread exiting.
 #define TecWorker_set_on_exit(w, h) TecWorker_ptr(w)->on_exit = (TecWorkerFunc)(h)
+
+#define TecWorker_done(self) TecDaemon_done(self)
 
 // FOR CALLING FROM AN INHERITED OBJECT ONLY.
 TECC_API void TecWorker_done_(TecDaemonPtr);

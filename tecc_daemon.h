@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-20 11:35:08 by magnolia>
+// Time-stamp: <Last changed 2026-05-01 04:13:19 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -28,25 +28,18 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 extern "C" {
 #endif
 
-/* // Forward references */
-/* typedef struct tagTecService TecService; */
-/* typedef TecService* TecServicePtr; */
-
-/* // RPC-style query to a service. */
-/* typedef int (*TecServiceFunc)(TecServicePtr, TecRequestPtr, TecReplyPtr); */
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *        Daemon - an abstract interface for long-lived service
 *                    and processing component
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 typedef struct tagTecDaemon TecDaemon;
 typedef TecDaemon* TecDaemonPtr;
 
 typedef struct tagTecDaemon {
-    // Reserved for flags.
+    // Reserved for options.
     unsigned long flags;
     // Signaled when the daemon is running.
     TecSignalPtr sig_running;
@@ -66,11 +59,11 @@ typedef struct tagTecDaemon {
     void (*done)(TecDaemonPtr);
 } TecDaemon;
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *                        Daemon API
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 enum {
     TECC_ERR_OK =                 0,
@@ -116,13 +109,11 @@ enum {
 #define TecDaemon_rpc(self, request, reply)\
     TecDaemon_ptr(self)->rpc(TecDaemon_ptr(self), (TecRequestPtr)(request), (TecReplyPtr)(reply))
 
-#define TecDaemon_done_func(self) (TecDaemon_ptr(self)->done)
-
 #define TecDaemon_done(self)\
-    if (TecDaemon_done_func(TecDaemon_ptr(self)))\
+    if (TecDaemon_ptr(self)->done != NULL)\
         do {\
-            TecDaemon_done_func(TecDaemon_ptr(self))(TecDaemon_ptr(self)); \
-            TecDaemon_done_func(self) = NULL; } while(0)
+            TecDaemon_ptr(self)->done(TecDaemon_ptr(self)); \
+            TecDaemon_ptr(self)->done = NULL; } while(0)
 
 // FOR CALLING FROM AN INHERITED OBJECT ONLY!
 #define TecDaemon_done_(self) ((void)(self))

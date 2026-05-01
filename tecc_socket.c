@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-29 11:15:34 by magnolia>
+// Time-stamp: <Last changed 2026-05-01 11:31:06 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -350,11 +350,11 @@ TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock) {
 
 // Close socket.
 TECC_IMPL void TecSocket_close(TecSocketPtr sock) {
-    if (sock->fd != TECC_EOF) {
+    if (sock->fd != -1) {
         TECC_TRACE_ENTER("Socket::close()");
         shutdown(sock->fd, SHUT_RDWR);
         close(sock->fd);
-        sock->fd = EOF;
+        sock->fd = -1;
         if (sock->pai) {
             freeaddrinfo(sock->pai);
             sock->pai = NULL;
@@ -414,7 +414,7 @@ TECC_IMPL int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst, size_t len) {
     }
     else if (len > 0  &&  total_received != len) {
         err = EIO;
-        TECC_TRACE("!!! %s:%d (%d) Partial read: %zd bytes of %zu.\n",
+        TECC_TRACE("!!! %s:%d (%d) Partial read: %zu bytes of %zu.\n",
                    sock->addr, sock->port, err,
                    total_received, len);
     }
