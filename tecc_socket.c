@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-01 11:31:06 by magnolia>
+// Time-stamp: <Last changed 2026-05-04 02:20:06 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -115,8 +115,8 @@ TECC_IMPL void TecSocket_init_(TecSocketPtr sock, TecSocketParamsPtr params) {
     sock->addr[0] = 0;
     sock->flags = 0;
     sock->pai = NULL;
-    sock->params = params;
     TecBuffer_init(&sock->buf, 0, params->buffer_size); // Empty buffer, no memory allocated.
+    sock->params = params;
 }
 
 

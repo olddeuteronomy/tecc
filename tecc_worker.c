@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-25 12:24:36 by magnolia>
+// Time-stamp: <Last changed 2026-05-03 11:26:19 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -17,13 +17,13 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-#include "tecc/tecc_daemon.h"
 #include "tecc/tecc_def.h"
+#include "tecc/tecc_daemon.h"
 #include "tecc/tecc_message.h"
 #include "tecc/tecc_rpc.h"
-#include "tecc/tecc_trace.h"
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_worker.h"
+#include "tecc/tecc_thread.h"
 #include "tecc/tecc_trace.h"
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -34,7 +34,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
 // Runs the message loop.
 static int worker_func(void* arg) {
-    TECC_TRACE_ENTER("worker_func()");
+    /* TECC_TRACE_ENTER("worker_func()"); */
     TecWorkerPtr w = (TecWorkerPtr)arg;
     // Initialization.
     if (w->on_init && !w->error) {
@@ -55,13 +55,13 @@ static int worker_func(void* arg) {
         w->error = w->on_exit(w);
     }
     TecSignal_set(&w->sig_terminated);
-    TECC_TRACE_EXIT();
     return w->error;
 }
 
 
 // Processes a "normal" message.
-static void on_msg(TecMsgPtr msg, TecWorkerPtr w) {
+static void on_msg(TecMsgPtr msg, void* args) {
+    TecWorkerPtr w = (TecWorkerPtr)args;
     TecCallbackFunc callback = (TecCallbackFunc)TecMap_get(&w->callbacks, TecMsg_tag(msg));
     if (callback) {
         // Process a message.
@@ -73,7 +73,8 @@ static void on_msg(TecMsgPtr msg, TecWorkerPtr w) {
 
 
 // Processes an RPC message.
-static void on_rpc(TecRPCPtr rpc, TecWorkerPtr w) {
+static void on_rpc(TecRPCPtr rpc, void* args) {
+    TecWorkerPtr w = (TecWorkerPtr)args;
     TecCallbackFunc callback = (TecCallbackFunc)TecMap_get(&w->callbacks, TecMsg_tag(rpc));
     if (callback) {
         // Process as a "normal" message.
@@ -88,9 +89,10 @@ static void on_rpc(TecRPCPtr rpc, TecWorkerPtr w) {
 
 
 // Message dispatcher.
-static void dispatch(TecMsgPtr msg, TecWorkerPtr w) {
-    TECC_TRACE_ENTER("Worker.dispatch()");
+static void dispatch(TecMsgPtr msg, void* args) {
+    TECC_TRACE_ENTER("Worker::dispatch()");
     TECC_TRACE("MsgType: %s\n", TecMsg_tag(msg));
+    TecWorkerPtr w = (TecWorkerPtr)args;
     if (TecMsg_typeof(TecRPC, msg)) {
         w->on_rpc((TecRPCPtr)msg, w);
     }
@@ -160,6 +162,7 @@ static int TecWorker_rpc_(TecDaemonPtr d, TecRequestPtr request, TecReplyPtr rep
 
 TECC_IMPL void TecWorker_done_(TecDaemonPtr d) {
     TecWorkerPtr w = (TecWorkerPtr)d;
+    TecThread_join(&w->worker_thread);
     TecSignal_done(&w->sig_running);
     TecSignal_done(&w->sig_terminated);
     TecQueue_done(&w->queue);

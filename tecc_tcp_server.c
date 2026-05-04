@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-30 16:27:55 by magnolia>
+// Time-stamp: <Last changed 2026-05-04 02:33:35 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -19,8 +19,8 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include <stdatomic.h>
 #include <stdbool.h>
 
-#include "tecc/tecc_def.h"
-#include "tecc/tecc_trace.h"
+#include "tecc/tecc_def.h"    // Pragma IWYU: keep
+#include "tecc/tecc_trace.h"  // Pragma IWYU: keep
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_buffer.h"
 #include "tecc/tecc_socket.h"
@@ -33,7 +33,6 @@ TECC_IMPL void TecTCPServerParams_init_(TecTCPServerParamsPtr self) {
     self->hash_table_size = TECC_TCP_SERVER_HASH_TABLE_SIZE;
     self->worker_pool_size = 0;
 }
-
 
 /*======================================================================
 *
@@ -107,11 +106,11 @@ static void start_(TecServicePtr svc, TecSignalPtr sig_started, int* error) {
 
 static void shutdown_(TecServicePtr svc, TecSignalPtr sig_stopped) {
     TecTCPServerPtr self = TecTCPServer_ptr(svc);
+    // Close listening socket.
     TecSocket_close(&self->sock);
     atomic_store(&self->running, false);
     // Wait until polling stops.
     TecSignal_wait(&self->sig_polling_stopped);
-    TecSocket_close(&self->sock);
     TecSignal_set(sig_stopped);
 }
 
@@ -127,7 +126,7 @@ TECC_IMPL void TecTCPServer_init_(TecTCPServerPtr self,
     TecService_init(&self->service, server_params->hash_table_size);
     self->server_params = server_params;
     self->socket_params = socket_params;
-    // Socket initilization.
+    // Listening socket initilization.
     TecSocket_init_server(&self->sock, socket_params);
     // Empty buffer.
     TecBuffer_init(&self->buffer, 0, socket_params->buffer_size);

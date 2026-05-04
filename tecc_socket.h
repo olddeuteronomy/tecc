@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-30 12:06:27 by magnolia>
+// Time-stamp: <Last changed 2026-05-04 02:21:50 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -130,7 +130,7 @@ typedef struct tagTecSocket {
     int port;                     // Port number.
     char addr[TECC_SOCK_ADDRLEN]; // Socket address.
     int flags;                    // Socket flags.
-    struct addrinfo* pai;         // Internal host addrinfo.
+    struct addrinfo* pai;         // Internal host addrinfo (NULL for client).
     TecBuffer buf;                // Internal buffer for read/write operations.
     TecSocketParamsPtr params;    // Host parameters.
 } TecSocket;

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-01 12:32:53 by magnolia>
+// Time-stamp: <Last changed 2026-05-03 11:22:28 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -65,9 +65,9 @@ typedef struct tagTecWorker {
     TecThread worker_thread;   // Worker thread.
     TecThreadFunc worker_func; // Worker function.
     // Message dispatcher.
-    void (*dispatch)(TecMsgPtr, TecWorkerPtr);
-    void (*on_msg)(TecMsgPtr, TecWorkerPtr); // Called on a message arrival.
-    void (*on_rpc)(TecRPCPtr, TecWorkerPtr); // Called on an RPC message arrival.
+    void (*dispatch)(TecMsgPtr, void*);
+    void (*on_msg)(TecMsgPtr, void*); // Called on a message arrival.
+    void (*on_rpc)(TecRPCPtr, void*); // Called on an RPC message arrival.
 } TecWorker;
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

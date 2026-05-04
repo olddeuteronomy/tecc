@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-01 15:01:09 by magnolia>
+// Time-stamp: <Last changed 2026-05-04 03:23:33 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -19,10 +19,12 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #ifndef TECC_WORKER_POOL_H
 #define TECC_WORKER_POOL_H
 
+#include <stdatomic.h>
 #include <stdbool.h>
 
-#include "tecc/tecc_def.h" // IWYU pragma: keep
-#include "tecc/tecc_buffer.h"
+#include "tecc/tecc_def.h"    // IWYU pragma: keep
+#include "tecc/tecc_buffer.h" // IWYU pragma: keep
+#include "tecc/tecc_message.h"
 #include "tecc/tecc_worker.h"
 
 #ifdef __cplusplus
@@ -32,19 +34,24 @@ extern "C" {
 typedef struct tagTecWorkerPool TecWorkerPool;
 typedef TecWorkerPool* TecWorkerPoolPtr;
 
-typedef struct tagTecPoolNode TecPoolNode;
-typedef TecPoolNode*  TecPoolNodePtr;
-
-typedef struct tagTecPoolNode {
-    TecWorker worker;
-    TecBuffer buffer;
-} TecPoolNode;
-
+// Worker pool = 56 bytes.
 typedef struct tagTecWorkerPool {
-    size_t nworkers;
+    size_t num_workers;
     TecWorkerPtr workers;
-    char* buffer;
+    atomic_int next_worker_index; // Round-robin worker index selection.
+    size_t task_buffer_size;      // One buffer per task.
+    char* buffer_arena;           // NULL if `task_buffer_size` is 0.
+    size_t payload_size;          // Size of payload per task.
+    char* payload_arena;          // Preallocated payload arena if any.
 } TecWorkerPool;
+
+// Message for invoking a task in the pool's thread.
+TECC_DEF_MESSAGE(TecTask)
+    char* buffer;       // May be NULL if no arena allocated.
+    size_t buffer_size; // May be 0 if no arena allocated
+    void* payload;      // Preallocated payload if any.
+    void (*invoke)(void* payload, TecBuffer buf);
+TECC_END_MESSAGE(TecTask)
 
 /*======================================================================
 *
@@ -52,9 +59,16 @@ typedef struct tagTecWorkerPool {
 *
  *====================================================================*/
 
-TECC_API bool TecWorkerPool_init(TecWorkerPoolPtr self, size_t nworkers, size_t bufsize);
-TECC_API void TecWorkerPool_done(TecWorkerPoolPtr self);
-TECC_API bool TecWorkerPool_run(TecWorkerPoolPtr self);
+// If `task_buffer_size` == 0, no arena is in use.
+TECC_API bool TecWorkerPool_init(TecWorkerPoolPtr self, size_t num_workers,
+                                 size_t task_buffer_size,
+                                 size_t payload_size);
+
+TECC_API bool TecWorkerPool_run(TecWorkerPoolPtr);
+
+TECC_API void TecWorkerPool_dispatch_task(TecWorkerPoolPtr, TecTaskPtr, void*);
+
+TECC_API void TecWorkerPool_done(TecWorkerPoolPtr);
 
 #ifdef __cplusplus
 }

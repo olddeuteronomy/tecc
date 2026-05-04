@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-01 01:59:10 by magnolia>
+// Time-stamp: <Last changed 2026-05-03 11:27:11 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -77,9 +77,9 @@ static int on_exit(TecWorkerPtr w) {
 }
 
 // Overrides TecWorker's `on_rpc()` handler to redirect an RPC to the service.
-static void on_rpc(TecRPCPtr rpc, TecWorkerPtr w) {
-    TECC_TRACE_ENTER("ServiceWorker.on_rpc()");
-    TecServiceWorkerPtr self = TecServiceWorker_ptr(w);
+static void on_rpc(TecRPCPtr rpc, void* args) {
+    TECC_TRACE_ENTER("ServiceWorker::on_rpc()");
+    TecServiceWorkerPtr self = TecServiceWorker_ptr(args);
     rpc->error = self->service->dispatch(self->service, rpc->request, rpc->reply, self->service);
     TecSignal_set(rpc->sig_ready);
     TECC_TRACE_EXIT();
