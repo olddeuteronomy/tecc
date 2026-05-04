@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-04 03:23:33 by magnolia>
+// Time-stamp: <Last changed 2026-05-04 16:05:35 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -39,19 +39,23 @@ typedef struct tagTecWorkerPool {
     size_t num_workers;
     TecWorkerPtr workers;
     atomic_int next_worker_index; // Round-robin worker index selection.
-    size_t task_buffer_size;      // One buffer per task.
+    size_t buffer_size;           // One buffer per task.
     char* buffer_arena;           // NULL if `task_buffer_size` is 0.
     size_t payload_size;          // Size of payload per task.
     char* payload_arena;          // Preallocated payload arena if any.
 } TecWorkerPool;
 
 // Message for invoking a task in the pool's thread.
+typedef void (*TecTaskInvokeFunc)(void* payload, TecBuffer buf, void* args);
+
 TECC_DEF_MESSAGE(TecTask)
-    char* buffer;       // May be NULL if no arena allocated.
-    size_t buffer_size; // May be 0 if no arena allocated
-    void* payload;      // Preallocated payload if any.
-    void (*invoke)(void* payload, TecBuffer buf);
+    char* buffer;       // Task buffer; may be NULL.
+    size_t buffer_size;
+    void* payload;      // Preallocated payload or NULL.
+    void* args;         // Additional arguments or NULL.
+    TecTaskInvokeFunc invoke;
 TECC_END_MESSAGE(TecTask)
+
 
 /*======================================================================
 *
@@ -66,7 +70,8 @@ TECC_API bool TecWorkerPool_init(TecWorkerPoolPtr self, size_t num_workers,
 
 TECC_API bool TecWorkerPool_run(TecWorkerPoolPtr);
 
-TECC_API void TecWorkerPool_dispatch_task(TecWorkerPoolPtr, TecTaskPtr, void*);
+TECC_API void TecWorkerPool_dispatch_task(
+    TecWorkerPoolPtr self, TecTaskPtr task, void* payload, void* args);
 
 TECC_API void TecWorkerPool_done(TecWorkerPoolPtr);
 

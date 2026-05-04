@@ -1,9 +1,12 @@
-// Time-stamp: <Last changed 2026-04-30 12:09:43 by magnolia>
+// Time-stamp: <Last changed 2026-05-04 16:00:11 by magnolia>
 
 #include <signal.h>
+#include <stdio.h>
 
+#include "tecc/tecc_buffer.h"
 #include "tecc/tecc_service.h"
 #include "tecc/tecc_signal.h"
+#include "tecc/tecc_socket.h"
 #include "tecc/tecc_thread.h"
 #include "tecc/tecc_trace.h"
 #include "tecc/tecc_tcp_server.h"
@@ -14,7 +17,7 @@ static TecSignal sig_stopped = {0};
 static int error = 0;
 
 // Start the service in the separate thread.
-int service_thread(void* args) {
+static int service_thread(void* args) {
     TECC_TRACE_ENTER("service_thread");
     TecServicePtr svc = TecService_ptr(args);
     svc->start(svc, &sig_started, &error);
@@ -25,14 +28,14 @@ int service_thread(void* args) {
 static TecSignal sig_quit;
 
 // Handle Ctrl-C.
-void handle_sigint(int sig) {
+static void handle_sigint(int sig) {
     (void)sig;
     TecSignal_set(&sig_quit);
 }
 
 
 // Usage: server [ADDR] [PORT]
-void parse_args(int argc, char* argv[], TecSocketParamsPtr params) {
+static void parse_args(int argc, char* argv[], TecSocketParamsPtr params) {
     if (argc > 1) {
         params->addr = argv[1];
     }
@@ -40,6 +43,22 @@ void parse_args(int argc, char* argv[], TecSocketParamsPtr params) {
         params->port = atoi(argv[2]);
     }
 }
+
+
+// Process client connection.
+static void process_str(TecSocketPtr sock) {
+    TECC_TRACE_ENTER("process_str");
+    TECC_TRACE("Socket: FD=%d, data=%p, size=%zu.\n", sock->fd, sock->buf.data, sock->buf.size);
+    TecBuffer data;
+    TecBuffer_init(&data, 1024, 1024);
+    int err = TecSocket_read(sock, &data, 0);
+    if (!err) {
+        puts(data.data);
+    }
+    TecBuffer_done(&data);
+    TECC_TRACE_EXIT();
+}
+
 
 int main(int argc, char* argv[]) {
     TECC_TRACE_INIT();
@@ -59,9 +78,12 @@ int main(int argc, char* argv[]) {
 
     TecTCPServerParams server_params;
     TecTCPServerParams_init(&server_params);
+    server_params.worker_pool_size = 8;
 
     TecTCPServer srv;
     TecTCPServer_init(&srv, &server_params, &socket_params);
+    // Process incoming connection.
+    srv.process_client = process_str;
 
     // Start the server in the separate thread.
     TecThread th;

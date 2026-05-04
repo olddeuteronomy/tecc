@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-04 02:20:06 by magnolia>
+// Time-stamp: <Last changed 2026-05-04 15:48:37 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -190,7 +190,7 @@ TECC_IMPL int TecSocket_open(TecSocketPtr sock) {
             // OK
             sock->fd = fd;
             sock->pai = res;
-            TECC_TRACE("Socket opened on %s:%d OK.\n", sock->params->addr, sock->params->port);
+            TECC_TRACE("Socket FD=%d opened on %s:%d OK.\n", sock->fd, sock->params->addr, sock->params->port);
         }
     }
     TECC_TRACE_EXIT();
@@ -371,7 +371,7 @@ TECC_IMPL int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst, size_t len) {
     ssize_t received = 0;
     bool eot = false; // End of transfer.
     char* buffer = sock->buf.data;
-    size_t buffer_size = sock->buf.capacity;
+    size_t buffer_size = sock->buf.size;
     //
     // Read data from the socket.
     //

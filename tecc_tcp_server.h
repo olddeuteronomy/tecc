@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-30 16:33:32 by magnolia>
+// Time-stamp: <Last changed 2026-05-04 15:06:03 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -23,10 +23,10 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
 #include "tecc/tecc_def.h"
 #include "tecc/tecc_buffer.h"
-#include "tecc/tecc_message.h"
 #include "tecc/tecc_service.h"
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_socket.h"
+#include "tecc/tecc_worker_pool.h"
 
 // Service hash table size for BSD-socket TecTCPServer.
 #define TECC_TCP_SERVER_HASH_TABLE_SIZE 3
@@ -72,13 +72,14 @@ typedef struct tagTecTCPServer {
     TecService service;
     TecTCPServerParamsPtr server_params;
     TecSocketParamsPtr socket_params;
-    TecSocket sock;
-    TecBuffer buffer;
+    TecSocket sock; // Listening socket.
     atomic_bool running;
     TecSignal sig_polling_stopped;
     void (*poll)(TecTCPServerPtr);
     // Processes incoming connection.
-    void (*process)(TecTCPServerPtr, TecSocketPtr);
+    TecWorkerPool pool;
+    void (*dispatch_client)(TecSocketPtr, TecBuffer, TecTCPServerPtr);
+    void (*process_client)(TecSocketPtr);
 } TecTCPServer;
 
 /*======================================================================

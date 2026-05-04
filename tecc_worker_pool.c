@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-04 03:04:49 by magnolia>
+// Time-stamp: <Last changed 2026-05-04 16:03:53 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -40,7 +40,7 @@ static void on_task(TecMsgPtr msg, void* args) {
         TecBuffer buf = {0};
         buf.data = task->buffer;
         buf.size = task->buffer_size;
-        task->invoke(task->payload, buf);
+        task->invoke(task->payload, buf, task->args);
     }
     TecMsg_free(msg);
 }
@@ -54,17 +54,17 @@ static void dispatch(TecMsgPtr msg, void* args) {
 
 // If `task_buffer_size` == 0, no arena is in use.
 TECC_IMPL bool TecWorkerPool_init(TecWorkerPoolPtr self, size_t num_workers,
-                                  size_t task_buffer_size,
+                                  size_t buffer_size,
                                   size_t payload_size) {
     TECC_TRACE_ENTER("WorkerPool::init()");
     self->num_workers = num_workers;
-    self->task_buffer_size = task_buffer_size;
+    self->buffer_size = buffer_size;
     self->payload_size = payload_size;
     atomic_init(&self->next_worker_index, 0);
     // Preallocate buffer arena.
     self->buffer_arena = NULL;
-    if (task_buffer_size) {
-        self->buffer_arena = TECC_CALLOC(num_workers, task_buffer_size);
+    if (buffer_size) {
+        self->buffer_arena = TECC_CALLOC(num_workers, buffer_size);
     }
     // Preallocate payload arena.
     self->payload_arena = NULL;
@@ -81,6 +81,16 @@ TECC_IMPL bool TecWorkerPool_init(TecWorkerPoolPtr self, size_t num_workers,
             // Substitute Worker's dispatcher.
             w->dispatch = dispatch;
         }
+    }
+    if (ok) {
+        TECC_TRACE("Inited with nworkers=%zu, buffer_arena=%zu, payload_arena=%zu.\n",
+                   self->num_workers,
+                   self->buffer_size * self->num_workers,
+                   self->payload_size * self->num_workers
+            );
+    }
+    else {
+        TECC_TRACE("!!! Initialization failed.\n");
     }
     TECC_TRACE_EXIT();
     return ok;
@@ -123,22 +133,24 @@ TECC_IMPL void TecWorkerPool_done(TecWorkerPoolPtr self) {
 
 
 TECC_API void TecWorkerPool_dispatch_task(
-    TecWorkerPoolPtr self, TecTaskPtr task, void* payload) {
+    TecWorkerPoolPtr self, TecTaskPtr task, void* payload, void* args) {
     TECC_TRACE_ENTER("WorkerPool::dispatch_task()");
     // Gets the next Worker index in round-robin fashion.
     size_t ndx = atomic_fetch_add_explicit(
         &self->next_worker_index, 1, memory_order_relaxed)
         % self->num_workers;
     // Assign the buffer for the task.
-    task->buffer_size = self->task_buffer_size;
+    task->buffer_size = (self->buffer_arena) ? self->buffer_size : 0;
     task->buffer = (self->buffer_arena) ?
-        self->buffer_arena + ndx * self->task_buffer_size : NULL;
+        self->buffer_arena + ndx * self->buffer_size : NULL;
     // Copy payload.
     task->payload = (self->payload_arena) ?
         self->payload_arena + ndx * self->payload_size : NULL;
     if (payload && task->payload) {
         memcpy(task->payload, payload, self->payload_size);
     }
+    // Arguments
+    task->args = args;
     TECC_TRACE("IDX=%zu buf_size=%zu, payload_size=%zu.\n",
                ndx, task->buffer_size, self->payload_size);
     // Send the task for execution.
