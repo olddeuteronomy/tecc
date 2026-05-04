@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-04 16:00:11 by magnolia>
+// Time-stamp: <Last changed 2026-05-05 02:39:01 by magnolia>
 
 #include <signal.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@ static void process_str(TecSocketPtr sock) {
     TECC_TRACE("Socket: FD=%d, data=%p, size=%zu.\n", sock->fd, sock->buf.data, sock->buf.size);
     TecBuffer data;
     TecBuffer_init(&data, 1024, 1024);
-    int err = TecSocket_read(sock, &data, 0);
+    int err = TecSocket_read(sock, &data);
     if (!err) {
         puts(data.data);
     }

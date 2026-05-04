@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-04 15:06:03 by magnolia>
+// Time-stamp: <Last changed 2026-05-05 00:06:34 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -28,10 +28,6 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include "tecc/tecc_socket.h"
 #include "tecc/tecc_worker_pool.h"
 
-// Service hash table size for BSD-socket TecTCPServer.
-#define TECC_TCP_SERVER_HASH_TABLE_SIZE 3
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,9 +42,7 @@ typedef struct tagTecTCPServerParams TecTCPServerParams;
 typedef TecTCPServerParams* TecTCPServerParamsPtr;
 
 typedef struct tagTecTCPServerParams {
-    int mode;                // Processing mode [0] - string mode.
-    size_t hash_table_size;  // Service hash table size [TECC_TCP_SERVER_HASH_TABLE_SIZE].
-    size_t worker_pool_size; // [0] - no worker pool.
+    size_t worker_pool_size;  // [0] - single thread server.
 } TecTCPServerParams;
 
 #define TecTCPServerParams_ptr(ptr) ((TecTCPServerParamsPtr)(ptr))
@@ -68,15 +62,18 @@ TECC_API void TecTCPServerParams_init_(TecTCPServerParamsPtr);
 typedef struct tagTecTCPServer TecTCPServer;
 typedef TecTCPServer* TecTCPServerPtr;
 
+// 376 bytes.
 typedef struct tagTecTCPServer {
     TecService service;
     TecTCPServerParamsPtr server_params;
     TecSocketParamsPtr socket_params;
-    TecSocket sock; // Listening socket.
+    // Listening socket.
+    TecSocket sock;
+    // Polling.
     atomic_bool running;
     TecSignal sig_polling_stopped;
     void (*poll)(TecTCPServerPtr);
-    // Processes incoming connection.
+    // Incoming connections.
     TecWorkerPool pool;
     void (*dispatch_client)(TecSocketPtr, TecBuffer, TecTCPServerPtr);
     void (*process_client)(TecSocketPtr);

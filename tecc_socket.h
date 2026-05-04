@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-04 02:21:50 by magnolia>
+// Time-stamp: <Last changed 2026-05-05 01:26:36 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -92,7 +92,7 @@ typedef TecSocketParams* TecSocketParamsPtr;
 typedef struct tagTecSocketParams {
     // Common parameters.
     const char* addr;       // Host address [127.0.0.1].
-    int port;               // Port number to connect to or bind.
+    int port;               // Port number to connect to or bind [4321].
     int family;             // Address family [AF_UNSPEC].
     int socktype;           // Socket type [SOCK_STREAM].
     int protocol;           // Protocol (usually 0, any appropriate).
@@ -110,7 +110,7 @@ typedef struct tagTecSocketParams {
 TECC_API void TecSocketParams_init(TecSocketParamsPtr self);
 
 // Destructor. Does nothing by default.
-TECC_API void TecSocketParams_done(TecSocketParamsPtr self);
+#define TecSocketParams_done(self) ((void)self)
 
 /*======================================================================
 *
@@ -186,10 +186,8 @@ TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock);
 // Closes the socket.
 TECC_API void TecSocket_close(TecSocketPtr);
 
-// Reads `len` bytes from the SOCK_STREAM socket into the `dst` buffer.
-// If `len` is 0, reads a null-terminated string.
 // Returns 0 on success or an error code from <errno.h> on failure.
-TECC_API int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst, size_t len);
+TECC_API int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst);
 
 // Writes the `src` buffer to the SOCK_STREAM socket.
 // Returns 0 on success or an error code from <errno.h> on failure.

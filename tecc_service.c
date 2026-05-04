@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-30 15:25:51 by magnolia>
+// Time-stamp: <Last changed 2026-05-04 23:34:33 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -18,8 +18,6 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ----------------------------------------------------------------------*/
 
 #include "tecc/tecc_def.h"
-#include "tecc/tecc_daemon.h"
-#include "tecc/tecc_trace.h"
 #include "tecc/tecc_service.h"
 
 
@@ -36,22 +34,6 @@ static void shutdown(TecServicePtr self, TecSignalPtr sig_stopped) {
     TecSignal_set(sig_stopped);
 }
 
-
-// Call a registered RPC service handler.
-static int dispatch(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply, void* args) {
-    TecMutex_lock(&self->mtx_guard);
-    int error = 0;
-    TecServiceFunc handler = TecService_get_handler(self, TecMsg_tag(request));
-    if (handler) {
-        handler(request, reply, args);
-    }
-    else {
-        error = TECC_ERR_HANDLER_NOT_FOUND;
-    }
-    TecMutex_unlock(&self->mtx_guard);
-    return error;
-}
-
 /*======================================================================
 *
 *                        TecService API
@@ -59,49 +41,14 @@ static int dispatch(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply
  *====================================================================*/
 
 TECC_IMPL void TecService_done_(TecServicePtr self) {
-    TecMap_done(&self->handlers);
-    TecMutex_destroy(&self->mtx_guard);
+    (void)self;
 }
 
 
-TECC_IMPL bool TecService_init_(TecServicePtr self, size_t hash_table_size) {
+TECC_IMPL bool TecService_init_(TecServicePtr self) {
     self->owner = NULL;
-    self->error = 0;
     self->start = start;
     self->shutdown = shutdown;
-    self->dispatch = dispatch;
     self->done = TecService_done_;
-    TecMap_init(&self->handlers, hash_table_size);
-    return TecMutex_init(&self->mtx_guard);
-}
-
-
-TECC_IMPL void TecService_register_(TecServicePtr self, const char* func_name, TecServiceFunc handler) {
-    TecMutex_lock(&self->mtx_guard);
-    TecMap_set(&self->handlers, func_name, (void*)handler);
-    TecMutex_unlock(&self->mtx_guard);
-}
-
-
-TECC_IMPL int TecService_rpc_(TecServicePtr self, TecRequestPtr request, TecReplyPtr reply) {
-    TECC_TRACE_ENTER("Service::rpc()");
-    int error = 0;
-    if (self->owner) {
-        // Make a call throught the daemon -- blocking.
-        TECC_TRACE("Dispatching through the daemon...\n");
-        error = TecDaemon_rpc(self->owner, request, reply);
-    }
-    else {
-        // Dispatch through itself.
-        TECC_TRACE("Dispatching through the service...\n");
-        error = self->dispatch(self, request, reply, self);
-    }
-    TECC_TRACE_EXIT();
-    return error;
-}
-
-
-TECC_IMPL TecServiceFunc TecService_get_handler(TecServicePtr self, const char* name) {
-    TecServiceFunc handler = (TecServiceFunc)(TecMap_get(&self->handlers, name));
-    return handler;
+    return true;
 }

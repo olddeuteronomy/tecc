@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-04 15:48:37 by magnolia>
+// Time-stamp: <Last changed 2026-05-05 01:38:52 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -95,12 +95,6 @@ TECC_IMPL void TecSocketParams_init(TecSocketParamsPtr self) {
     self->queue_size = kTecDefaultConnQueueSize;
     self->opt_reuse_addr = kTecDefaultOptReuseAddress;
     self->opt_reuse_port = kTecDefaultOptReusePort;
-}
-
-
-// Destructor. Does nothing by default.
-TECC_IMPL void TecSocketParams_done(TecSocketParamsPtr self) {
-    (void)self;
 }
 
 /*======================================================================
@@ -364,59 +358,35 @@ TECC_IMPL void TecSocket_close(TecSocketPtr sock) {
 }
 
 
-// If `len' is 0, reads null-terminated string. Returns 0 on success.
-TECC_IMPL int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst, size_t len) {
+// Returns 0 on success or an error code from <errno.h> on failure.
+TECC_IMPL int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst) {
     TECC_TRACE_ENTER("Socket::read()");
-    size_t total_received = 0;
     ssize_t received = 0;
-    bool eot = false; // End of transfer.
     char* buffer = sock->buf.data;
     size_t buffer_size = sock->buf.size;
+    int err = 0;
     //
     // Read data from the socket.
     //
     do {
         received = read(sock->fd, buffer, buffer_size);
-        if (len == 0 && received > 0) {
-            // Length is unknown -- check for null-terminated string.
-            if (buffer[received-1] == '\0') {
-                TECC_TRACE("%s:%d EOT received.\n", sock->addr, sock->port);
-                eot = true;
-            }
-        }
         if (received > 0) {
             TecBuffer_write(dst, buffer, received);
             TECC_TRACE("%s:%d --> RECV %zd bytes.\n", sock->addr, sock->port, received);
-            total_received += received;
-            if (len > 0 && len == total_received) {
-                break;
-            }
         }
-        if (eot || received < (ssize_t)buffer_size) {
-            break;
-        }
+        /* if (received < (ssize_t)buffer_size) { */
+        /*     break; */
+        /* } */
     } while (received);
     //
     // Check for errors.
     //
-    int err = 0;
-    if (len > 0  &&  total_received == len) {
-        // OK, do nothing.
-        (void)0;
-    }
-    else if (received == 0) {
-        err = errno;
-        TECC_TRACE("%s:%d (%d) Peer closed the connection.\n", sock->addr, sock->port, err);
+    if (received == 0) {
+        TECC_TRACE("%s:%d Peer closed the connection.\n", sock->addr, sock->port);
     }
     else if (received < 0) {
         err = errno;
-        TECC_TRACE("!!! %s:%d (%d) Read error.\n", sock->addr, sock->port, err);
-    }
-    else if (len > 0  &&  total_received != len) {
-        err = EIO;
-        TECC_TRACE("!!! %s:%d (%d) Partial read: %zu bytes of %zu.\n",
-                   sock->addr, sock->port, err,
-                   total_received, len);
+        TECC_TRACE("!!! %s:%d Read error %d.\n", sock->addr, sock->port, err);
     }
     TECC_TRACE_EXIT();
     return err;
@@ -424,7 +394,7 @@ TECC_IMPL int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst, size_t len) {
 
 
 // Writes the `src` buffer to the SOCK_STREAM socket.
-// Returns 0 on success or an error code from <errno.h>
+// Returns 0 on success or an error code from <errno.h> on failure.
 TECC_IMPL int TecSocket_write(TecSocketPtr sock, TecBufferPtr src) {
     TECC_TRACE_ENTER("Socket::write()");
     ssize_t sent = 0;
@@ -439,11 +409,11 @@ TECC_IMPL int TecSocket_write(TecSocketPtr sock, TecBufferPtr src) {
         //
         if (sent < 0) {
             err = errno;
-            TECC_TRACE("!!! %s:%d (%d) Write error.\n", sock->addr, sock->port, err);
+            TECC_TRACE("!!! %s:%d Write error %d.\n", sock->addr, sock->port, err);
         }
         else if (src->size != (size_t)sent) {
             err = EIO;
-            TECC_TRACE("!!! %s:%d (%d) Partial write: %zd bytes of %zu.\n",
+            TECC_TRACE("!!! %s:%d (error=%d) Partial write: %zd bytes of %zu.\n",
                        sock->addr, sock->port, err,
                        sent, src->size);
         }
@@ -455,7 +425,7 @@ TECC_IMPL int TecSocket_write(TecSocketPtr sock, TecBufferPtr src) {
 
 
 // Writes the null-terminated string to the SOCK_STREAM socket.
-// Returns 0 on success or an error code from <errno.h>
+// Returns 0 on success or an error code from <errno.h> on failure.
 TECC_IMPL int TecSocket_write_str(TecSocketPtr sock, char* s) {
     if (s == NULL) {
         return 0;

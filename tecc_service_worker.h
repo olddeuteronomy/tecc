@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-20 12:43:43 by magnolia>
+// Time-stamp: <Last changed 2026-05-05 00:07:36 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -21,8 +21,6 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #define TECC_SERVICE_WORKER_H
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
-/* #include "tecc/tecc_daemon.h" */
-/* #include "tecc/tecc_signal.h" */
 #include "tecc/tecc_thread.h"
 #include "tecc/tecc_worker.h"
 
@@ -34,31 +32,31 @@ extern "C" {
 typedef struct tagTecService TecService;
 typedef TecService* TecServicePtr;
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *          ServiceWorker combines Service and Worker for
-*     synchronous thread-safe RPC processing in a dedicated thread.
+*             running Service in a dedicated thread.
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 typedef struct tagTecServiceWorker TecServiceWorker;
 typedef TecServiceWorker* TecServiceWorkerPtr;
 
-// Inherited from TecWorker.
+// Inherited from TecWorker (824 bytes).
 typedef struct tagTecServiceWorker {
     TecWorker worker;
     TecServicePtr service;
     TecSignal sig_started;
     TecSignal sig_stopped;
-    TecThreadFunc service_func; // Service function.
-    TecThread service_thread;   // Service thread.
+    TecThreadFunc service_func;
+    TecThread service_thread;
 } TecServiceWorker;
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *                   TecServiceWorker API
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 #define TecServiceWorker_ptr(ptr) ((TecServiceWorkerPtr)(ptr))
 

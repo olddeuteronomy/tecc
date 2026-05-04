@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-03 11:27:11 by magnolia>
+// Time-stamp: <Last changed 2026-05-05 00:01:38 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -19,32 +19,32 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
 #include "tecc/tecc_def.h"
 #include "tecc/tecc_daemon.h"
-#include "tecc/tecc_rpc.h"
 #include "tecc/tecc_service.h"
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_thread.h"
 #include "tecc/tecc_worker.h"
 #include "tecc/tecc_service_worker.h"
-#include "tecc/tecc_trace.h"
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+/*======================================================================
 *
 *                    TecWorker overrides
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 static int service_start_func(void* arg) {
     TecServiceWorkerPtr w = TecServiceWorker_ptr(arg);
     TecServicePtr service = w->service;
-    service->start(service, &w->sig_started, &service->error);
-    return service->error;
+    int error = 0;
+    service->start(service, &w->sig_started, &error);
+    return error;
 }
 
 static int service_shutdown_func(void* arg) {
     TecServiceWorkerPtr w = TecServiceWorker_ptr(arg);
     TecServicePtr service = w->service;
     service->shutdown(service, &w->sig_stopped);
-    return service->error;
+    return 0;
 }
 
 // Creates and runs the service thread which calls `service->start()`.
@@ -56,7 +56,7 @@ static int on_init(TecWorkerPtr w) {
     }
     // Wait until the Service has started.
     TecSignal_wait(&self->sig_started);
-    return self->service->error;
+    return self->service_thread.res;
 }
 
 // Finish the service.
@@ -73,23 +73,14 @@ static int on_exit(TecWorkerPtr w) {
     TecSignal_wait(&self->sig_stopped);
     // Finish the service thread.
     TecThread_join(&self->service_thread);
-    return self->service->error;
+    return exit_thread.res;
 }
 
-// Overrides TecWorker's `on_rpc()` handler to redirect an RPC to the service.
-static void on_rpc(TecRPCPtr rpc, void* args) {
-    TECC_TRACE_ENTER("ServiceWorker::on_rpc()");
-    TecServiceWorkerPtr self = TecServiceWorker_ptr(args);
-    rpc->error = self->service->dispatch(self->service, rpc->request, rpc->reply, self->service);
-    TecSignal_set(rpc->sig_ready);
-    TECC_TRACE_EXIT();
-}
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
-*                    TecServiceWorker API
+*                      TecServiceWorker API
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 TECC_IMPL void TecServiceWorker_done_(TecDaemonPtr d) {
     TecServiceWorkerPtr self = TecServiceWorker_ptr(d);
@@ -109,7 +100,6 @@ TECC_IMPL bool TecServiceWorker_init_(TecServiceWorkerPtr self, TecServicePtr se
         d->done = TecServiceWorker_done_;
         self->worker.on_init = on_init;
         self->worker.on_exit = on_exit;
-        self->worker.on_rpc = on_rpc;
         service->owner = d;
     }
     return ok;

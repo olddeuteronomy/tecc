@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-28 16:10:19 by magnolia>
+// Time-stamp: <Last changed 2026-05-05 02:39:05 by magnolia>
 /*======================================================================
 *
 *                      Testing TecSocket server.
@@ -48,7 +48,7 @@ int run_server(TecSocketPtr sock) {
         TecSocket cli = TecSocket_accept(sock);
         if (TecSocket_is_valid(&cli)) {
             TecBuffer_rewind(&str); // Reuse the incoming buffer.
-            TecSocket_read(&cli, &str, 0);
+            TecSocket_read(&cli, &str);
             puts(TecBuffer_data(&str));
             TecSocket_close(&cli);
             TecSocket_done(&cli);

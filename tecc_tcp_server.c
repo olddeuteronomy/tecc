@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-04 15:05:35 by magnolia>
+// Time-stamp: <Last changed 2026-05-05 01:10:40 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -19,8 +19,8 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include <stdatomic.h>
 #include <stdbool.h>
 
-#include "tecc/tecc_def.h"    // Pragma IWYU: keep
-#include "tecc/tecc_trace.h"  // Pragma IWYU: keep
+#include "tecc/tecc_def.h"    // IWYU pragma: keep
+#include "tecc/tecc_trace.h"  // IWYU pragma: keep
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_buffer.h"
 #include "tecc/tecc_socket.h"
@@ -30,8 +30,6 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
 
 TECC_IMPL void TecTCPServerParams_init_(TecTCPServerParamsPtr self) {
-    self->mode = 0;
-    self->hash_table_size = TECC_TCP_SERVER_HASH_TABLE_SIZE;
     self->worker_pool_size = 0;
 }
 
@@ -40,8 +38,6 @@ TECC_IMPL void TecTCPServerParams_init_(TecTCPServerParamsPtr self) {
 *                      TecTCPServer API
 *
  *====================================================================*/
-
-
 
 // Default processing.
 static void process_client(TecSocketPtr sock) {
@@ -128,7 +124,7 @@ static void shutdown_(TecServicePtr svc, TecSignalPtr sig_stopped) {
 TECC_IMPL void TecTCPServer_init_(TecTCPServerPtr self,
                                   TecTCPServerParamsPtr server_params,
                                   TecSocketParamsPtr socket_params) {
-    TecService_init(&self->service, server_params->hash_table_size);
+    TecService_init(&self->service);
     self->server_params = server_params;
     self->socket_params = socket_params;
     // Listening socket initilization.
@@ -136,7 +132,7 @@ TECC_IMPL void TecTCPServer_init_(TecTCPServerPtr self,
     // Polling
     TecSignal_init(&self->sig_polling_stopped);
     atomic_init(&self->running, true);
-    // Client Worker pool.
+    // Worker pool.
     size_t num_workers = self->server_params->worker_pool_size;
     if (num_workers == 0) {
         num_workers = 1;

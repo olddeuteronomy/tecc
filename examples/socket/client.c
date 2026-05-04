@@ -1,34 +1,28 @@
-// Time-stamp: <Last changed 2026-04-28 13:03:57 by magnolia>
+// Time-stamp: <Last changed 2026-05-05 02:58:32 by magnolia>
 
-#include "tecc/tecc_client.h"
-#include "tecc/tecc_service.h"
-#include "tecc/tecc_signal.h"
-#include "tecc/tecc_socket.h"
-#include "tecc/tecc_trace.h"
+#include <stdlib.h>
+
+#include "tecc/tecc_trace.h" // IWYU pragma: keep
+#include "tecc/tecc_tcp_client.h"
 
 
-int run(TecServicePtr cli) {
-    TecSignal sig_started;
-    TecSignal_init(&sig_started);
-    TecSignal sig_stopped;
-    TecSignal_init(&sig_stopped);
+static char test_str[] =
+    "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.  "
+    "Donec hendrerit tempor tellus.  Donec pretium posuere tellus.  "
+    "Proin quam nisl, tincidunt et, mattis eget, convallis nec, purus.  "
+    "Cum sociis natoque penatibus et magnis dis parturient montes, "
+    "nascetur ridiculus mus.  Nulla posuere.  Donec vitae dolor.  "
+    "Nullam tristique diam non turpis.  Cras placerat accumsan nulla.  "
+    "Nullam rutrum.  Nam vestibulum accumsan nisl.\n";
 
-    int err = 0;
-    cli->start(cli, &sig_started, &err);
-    TecSignal_wait(&sig_started);
 
-    if (!err) {
-        cli->shutdown(cli, &sig_stopped);
-        TecSignal_wait(&sig_stopped);
-    }
-
-    TecSignal_done(&sig_stopped);
-    TecSignal_done(&sig_started);
-    return err;
+int test(TecTCPClientPtr cli) {
+    int error = cli->send_str(cli, test_str);
+    return error;
 }
 
 
-// Usage: socket [ADDR] [PORT]
+// Usage: client [ADDR] [PORT]
 void parse_args(int argc, char* argv[], TecSocketParamsPtr params) {
     if (argc > 1) {
         params->addr = argv[1];
@@ -38,26 +32,39 @@ void parse_args(int argc, char* argv[], TecSocketParamsPtr params) {
     }
 }
 
+
 int main(int argc, char* argv[]) {
     TECC_TRACE_INIT();
     TECC_TRACE_ENTER("main");
+
+    TecSignal sig_started;
+    TecSignal_init(&sig_started);
+    TecSignal sig_stopped;
+    TecSignal_init(&sig_stopped);
 
     TecSocketParams socket_params;
     TecSocketParams_init(&socket_params);
     parse_args(argc, argv, &socket_params);
 
-    TecClientParams client_params;
-    TecClientParams_init(&client_params);
+    TecTCPClient cli;
+    TecTCPClient_init(&cli, &socket_params);
 
-    TecClient cli;
-    TecClient_init(&cli, &client_params, &socket_params);
+    int error = 0;
+    TecService_start(&cli, &sig_started, &error);
+    TecSignal_wait(&sig_started);
 
-    int err = run(TecService_ptr(&cli));
+    if (!error) {
+        error = test(&cli);
+        TecService_shutdown(&cli, &sig_stopped);
+        TecSignal_wait(&sig_stopped);
+    }
 
-    TecClientParams_done(&client_params);
+    // Cleanup.
+    TecSignal_done(&sig_stopped);
+    TecSignal_done(&sig_started);
     TecSocketParams_done(&socket_params);
-    TecClient_done(&cli);
+    TecTCPClient_done(&cli);
     TECC_TRACE_EXIT();
     TECC_TRACE_DONE();
-    return err;
+    return error;
 }
