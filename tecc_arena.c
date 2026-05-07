@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-07 03:02:35 by magnolia>
+// Time-stamp: <Last changed 2026-05-07 10:32:57 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -16,6 +16,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -26,81 +27,86 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include "tecc/tecc_arena.h"
 
 
-TECC_IMPL void TecArena_init(TecArenaPtr arena, size_t nelems, size_t elem_size) {
+typedef struct tagTecArenaFreeNode {
+    TecArenaFreeNodePtr next;
+} TecArenaFreeNode;
+typedef TecArenaFreeNode* TecArenaFreeNodePtr;
+
+
+TECC_IMPL bool TecArena_init(TecArenaPtr arena, size_t nelems, size_t elem_size) {
     arena->elem_size = elem_size;
-    arena->nelems = nelems;
+    arena->capacity = nelems;
     arena->allocated = 0;
-    TecMutex_init(&arena->guard);
+    bool ok = TecMutex_init(&arena->lock);
     if (nelems) {
         arena->buf = TECC_CALLOC(nelems, elem_size);
-        arena->pos = (ptrdiff_t)arena->buf;
     }
     else {
         arena->buf = NULL;
-        arena->pos = 0;
     }
+    arena->free_list = NULL;
+    atomic_store(&arena->allocated, 0);
+    return ok;
 }
 
-
-static size_t count__ = 0;
 
 TECC_IMPL void* TecArena_allocate(TecArenaPtr arena) {
-    TECC_TRACE_ENTER("Arena::allocate()");
-    TecMutex_lock(&arena->guard);
-    TecArenaElemPtr elem = NULL;
-    count__ += 1;
-    if (arena->allocated < arena->nelems) {
-        // Allocate at the arena.
-        TECC_TRACE("At arena: ID=%zu allocated=%zu, nelems=%zu.\n",
-                   count__, arena->allocated, arena->nelems);
-        if (arena->allocated == 0) {
-            // Reset the arena.
-            arena->pos = (ptrdiff_t)arena->buf;
-        }
-        // Use the task arena.
-        elem = (TecArenaElemPtr)arena->pos;
-        /* memset(elem, 0, arena->elem_size); */
-        elem->flags = TECC_ARENA_ALLOCATED;
-        arena->pos += arena->elem_size;
-        arena->allocated += 1;
+    TecMutex_lock(&arena->lock);
+    TecArenaElemPtr ptr = NULL;
+    // Try to allocate from arena.
+    if (arena->free_list) {
+        // Pop from free list.
+        ptr = (TecArenaElemPtr)(arena->free_list);
+        arena->free_list = arena->free_list->next;
     }
     else {
-        // Allocate at heap.
-        TECC_TRACE("At heap: ID=%zu.\n", count__);
-        elem = TECC_CALLOC(1, arena->elem_size);
+        // Allocate from arena.
+        size_t used = atomic_load(&arena->allocated);
+        if (used < arena->capacity) {
+            ptr = (TecArenaElemPtr)(arena->buf + used * arena->elem_size);
+        }
     }
-    elem->id = count__;
-    TecMutex_unlock(&arena->guard);
-    TECC_TRACE_EXIT();
-    return elem;
+    // If no arena memory, use heap.
+    if (ptr) {
+        atomic_fetch_add(&arena->allocated, 1);
+        ptr->flags = TECC_ARENA_ALLOCATED;
+    }
+    else {
+        ptr = TECC_CALLOC(1, arena->elem_size);
+    }
+    TecMutex_unlock(&arena->lock);
+    return ptr;
 }
 
-TECC_IMPL void TecArena_release(TecArenaPtr arena, TecArenaElemPtr elem) {
-    TECC_TRACE_ENTER("Arena::release()");
-    TecMutex_lock(&arena->guard);
-    if (elem->flags & TECC_ARENA_ALLOCATED) {
-        TECC_TRACE("At arena: ID=%zu, allocated=%zu, nelems=%zu.\n",
-                   elem->id,  arena->allocated, arena->nelems);
-        if (--arena->allocated == 0) {
-            // Reset the arena.
-            TECC_TRACE("Reset: allocated=%zu, nelems=%zu.\n", arena->allocated, arena->nelems);
-            arena->pos = (ptrdiff_t)arena->buf;
+
+TECC_IMPL void TecArena_release(TecArenaPtr arena, TecArenaElemPtr ptr) {
+    if (!ptr) {
+        return;
+    }
+    TecMutex_lock(&arena->lock);
+    if (ptr->flags & TECC_ARENA_ALLOCATED) {
+        // Push back to free list.
+        TecArenaFreeNodePtr node = (TecArenaFreeNodePtr)ptr;
+        node->next = arena->free_list;
+        arena->free_list = node;
+        size_t new_count = atomic_fetch_sub(&arena->allocated, 1) - 1;
+        // Reset free list when empty.
+        if (new_count == 0) {
+            arena->free_list = NULL;
         }
     }
     else {
-        TECC_TRACE("At heap: ID=%zu.\n", elem->id);
-        TECC_FREE(elem);
+        // Release from heap.
+        TECC_FREE(ptr);
     }
-    TecMutex_unlock(&arena->guard);
-    TECC_TRACE_EXIT();
+    TecMutex_unlock(&arena->lock);
 }
+
 
 TECC_IMPL void TecArena_done(TecArenaPtr arena) {
     if (arena->buf) {
         TECC_FREE(arena->buf);
         arena->buf = NULL;
     }
-    arena->nelems = 0;
-    arena->pos = 0;
-    TecMutex_destroy(&arena->guard);
+    TecMutex_destroy(&arena->lock);
 }

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-07 02:36:34 by magnolia>
+// Time-stamp: <Last changed 2026-05-07 10:23:41 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -28,7 +28,8 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #define TECC_ARENA_H
 
 #include <stddef.h>
-#include <stdlib.h>
+#include <stdatomic.h>
+#include <stdbool.h>
 
 #include "tecc/tecc_def.h"
 #include "tecc/tecc_signal.h"
@@ -42,27 +43,31 @@ extern "C" {
 
 // Any arena-ready object must include this header as its first member.
 typedef struct tagTecArenaElem {
-    unsigned flags;        // Allocation flags. 0 - allocated from heap.
-    size_t id;
+    unsigned flags;    // Allocation flags. 0 - allocated from heap.
 } TecArenaElem;
 typedef TecArenaElem* TecArenaElemPtr;
 
-// 40 bytes.
+// Forward references.
+typedef struct tagTecArenaFreeNode TecArenaFreeNode;
+typedef TecArenaFreeNode* TecArenaFreeNodePtr;
+
+// 88 bytes.
 typedef struct tagTecArena {
-    char* buf;         // Preallocated arena buffer.
-    size_t elem_size;  // Size of object to allocate at arena.
-    size_t nelems;     // Arena capacity in number of objects.
-    size_t allocated;  // Number of allocated object at arena.
-    ptrdiff_t pos;     // Current free memory address.
-    TecMutex guard;
+    char* buf;                // Preallocated arena buffer.
+    size_t elem_size;         // Size of object to be allocated.
+    size_t capacity;          // Arena capacity.
+    atomic_size_t allocated;  // Count of allocated object at arena.
+    TecArenaFreeNodePtr free_list;
+    TecMutex lock;
 } TecArena;
 typedef TecArena* TecArenaPtr;
 
-TECC_API void TecArena_init(TecArenaPtr arena, size_t nelems, size_t elem_size);
+TECC_API bool TecArena_init(TecArenaPtr arena, size_t nelems, size_t elem_size);
 TECC_API void TecArena_done(TecArenaPtr arena);
 
 TECC_API void* TecArena_allocate(TecArenaPtr arena);
 TECC_API void TecArena_release(TecArenaPtr arena, TecArenaElemPtr elem);
+
 
 #ifdef __cplusplus
 }
