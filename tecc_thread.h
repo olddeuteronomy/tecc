@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-20 11:43:59 by magnolia>
+// Time-stamp: <Last changed 2026-05-07 00:42:21 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -30,6 +30,7 @@ extern "C" {
 typedef struct tagTecThread TecThread;
 typedef TecThread* TecThreadPtr;
 
+// 16 bytes.
 typedef struct tagTecThread {
     bool ok;
     int res;
@@ -38,6 +39,14 @@ typedef struct tagTecThread {
 
 typedef thrd_start_t TecThreadFunc;
 
+/*======================================================================
+*
+*                          TecThread API
+*
+ *====================================================================*/
+
+#define TecThread_init(self) do {\
+    (self)->ok = false; (self)->res = thrd_error; } while(0)
 
 #define TecThread_create(self, func, arg) do {\
         (self)->res = thrd_create(&(self)->t, (func), (arg));\

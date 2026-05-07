@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-04 16:03:53 by magnolia>
+// Time-stamp: <Last changed 2026-05-06 22:35:01 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -20,9 +20,9 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include <stdatomic.h>
 #include <stdio.h>
 
-#include "tecc/tecc_buffer.h"
 #include "tecc/tecc_def.h"   // IWYU pragma: keep
 #include "tecc/tecc_trace.h" // IWYU pragma: keep
+#include "tecc/tecc_buffer.h"
 #include "tecc/tecc_memory.h"
 #include "tecc/tecc_message.h"
 #include "tecc/tecc_daemon.h"

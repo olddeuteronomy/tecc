@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-17 13:50:03 by magnolia>
+// Time-stamp: <Last changed 2026-05-07 03:52:11 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -34,7 +34,6 @@ typedef struct tagTecQueueNode {
 TECC_IMPL bool TecQueue_init(TecQueuePtr q) {
     q->head = NULL;
     q->tail = NULL;
-    q->size = 0;
     TecMutex_init(&q->mtx);
     TecCV_init(&q->cv);
     return true;
@@ -56,19 +55,17 @@ TECC_IMPL void TecQueue_done(TecQueuePtr q) {
 
 
 TECC_IMPL void TecQueue_push(TecQueuePtr q, void* obj) {
-    TecMutex_lock(&q->mtx);
     TecQueueNodePtr node = TECC_MALLOC(sizeof(TecQueueNode));
     node->obj = obj;
     node->next = NULL;
-    if (q->head == NULL) {
-        q->head = node;
-        q->tail = node;
+    TecMutex_lock(&q->mtx);
+    if (q->tail) {
+        q->tail->next = node;
     }
     else {
-        q->tail->next = node;
-        q->tail = node;
+        q->head = node;
     }
-    q->size += 1;
+    q->tail = node;
     TecCV_signal(&q->cv);
     TecMutex_unlock(&q->mtx);
 }
@@ -76,7 +73,7 @@ TECC_IMPL void TecQueue_push(TecQueuePtr q, void* obj) {
 
 TECC_IMPL void* TecQueue_pop(TecQueuePtr q) {
     TecMutex_lock(&q->mtx);
-    while (q->size == 0) {
+    while (q->head == NULL) {
         TecCV_wait(&q->cv, &q->mtx);
     }
     TecQueueNode* head = q->head;
@@ -85,8 +82,7 @@ TECC_IMPL void* TecQueue_pop(TecQueuePtr q) {
     if (q->head == NULL) {
         q->tail = NULL;
     }
-    TECC_FREE(head);
-    q->size -= 1;
     TecMutex_unlock(&q->mtx);
+    TECC_FREE(head);
     return obj;
 }

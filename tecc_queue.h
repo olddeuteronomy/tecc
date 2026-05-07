@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-17 13:50:08 by magnolia>
+// Time-stamp: <Last changed 2026-05-07 03:43:35 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -23,26 +23,25 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include <threads.h>
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
-// #include "tecc/tecc_message.h"
 #include "tecc/tecc_signal.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *                      Thread-safe queue
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 typedef struct tagTecQueueNode TecQueueNode;
 typedef TecQueueNode* TecQueueNodePtr;
 
+// 128 bytes.
 typedef struct tagTecQueue {
     TecQueueNodePtr head;
     TecQueueNodePtr tail;
-    size_t size;
     TecMutex mtx;
     TecCV cv;
 } TecQueue;

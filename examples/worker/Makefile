@@ -1,9 +1,9 @@
-# Time-stamp: <Last changed 2026-05-01 13:13:28 by magnolia>
+# Time-stamp: <Last changed 2026-05-06 16:54:10 by magnolia>
 
 include ../../common.mk
 include ../examples.mk
 
-all: worker request wpool | $(OUTDIR)
+all: worker request wpool thrpool | $(OUTDIR)
 
 worker: worker.c
 	$(CC) $(CFLAGS) $(INCLUDES) $^ $(LIBS) -o $(OUTDIR)/$@
@@ -12,6 +12,9 @@ request: request.c
 	$(CC) $(CFLAGS) $(INCLUDES) $^ $(LIBS) -o $(OUTDIR)/$@
 
 wpool: wpool.c
+	$(CC) $(CFLAGS) $(INCLUDES) $^ $(LIBS) -o $(OUTDIR)/$@
+
+thrpool: thrpool.c
 	$(CC) $(CFLAGS) $(INCLUDES) $^ $(LIBS) -o $(OUTDIR)/$@
 
 $(OUTDIR):
