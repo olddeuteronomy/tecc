@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-03 11:22:28 by magnolia>
+// Time-stamp: <Last changed 2026-05-09 14:52:19 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -20,80 +20,90 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #define TECC_WORKER_H
 
 #include "tecc/tecc_def.h"
+#include "tecc/tecc_daemon.h"
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_message.h"
 #include "tecc/tecc_queue.h"
 #include "tecc/tecc_map.h"
-#include "tecc/tecc_thread.h"
-#include "tecc/tecc_daemon.h"
+#include "tecc/tecc_threads.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *          Thread-safe synchronous message-processing daemon.
 *   Creates and starts a background thread that runs the message loop.
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 typedef struct tagTecWorker TecWorker;
 typedef TecWorker* TecWorkerPtr;
 
-typedef int (*TecWorkerFunc)(TecWorkerPtr) ;
+#ifdef TECC_PTHREAD
+// POSIX
+#define TECC_THREAD_FUNC_RETVAL void*
+#define TECC_THREAD_FUNC_RETURN(val_) return &(val_)
+typedef void* (*TecWorkerFunc)(TecWorkerPtr);
 
-// Inherited from TecDaemon, see `tecc_daemon.h`.
+#else
+// STDC
+#define TECC_THREAD_FUNC_RETVAL int
+#define TECC_THREAD_FUNC_RETURN(val_) return (val_)
+typedef int (*TecWorkerFunc)(TecWorkerPtr);
+#endif
+
+// Inherited from TecDaemon, see `tecc_daemon.h`. 560 bytes.
 typedef struct tagTecWorker {
     TecDaemon daemon;
     // Parameters.
-    size_t hash_table_size;
+    size_t hash_table_size; //
     // Status.
     int error;  // 0 if OK.
     // Signals.
-    TecSignal sig_running;    // Indicating the worker is running.
-    TecSignal sig_terminated; // Indicating the worker has terminated.
+    TecSignal sig_running;    // Indicates then the worker thread has started.
+    TecSignal sig_terminated; // Indicates that the worker thread has terminated.
     // Thread-safe message queue.
     TecQueue queue;
-    // Message callbacks.
+    // Message handlers.
     TecMap callbacks;
     // Worker's init/exit handlers. Both are NULL by default.
-    TecWorkerFunc on_init; // Called on starting the worker thread.
-    TecWorkerFunc on_exit; // Called on exiting the worker thread if the worker has been inited successfully.
+    int (*on_init)(void* arg); // Called when the worker thread starts.
+    int (*on_exit)(void* arg); // Called when the worker thread exits.
     // Worker thread.
-    TecMutex mtx_guard;        // Worker thread guard.
+    TecMutex lock;             // Worker thread guard.
     TecThread worker_thread;   // Worker thread.
     TecThreadFunc worker_func; // Worker function.
-    // Message dispatcher.
+    // Message dispatchers. May be overwritten.
     void (*dispatch)(TecMsgPtr, void*);
-    void (*on_msg)(TecMsgPtr, void*); // Called on a message arrival.
-    void (*on_rpc)(TecRPCPtr, void*); // Called on an RPC message arrival.
+    void (*on_msg)(TecMsgPtr, void*); // Called when a message arrives.
+    void (*on_rpc)(TecRPCPtr, void*); // Called when an RPC message arrives.
 } TecWorker;
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *                         TecWorker API
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+ *====================================================================*/
 #define TecWorker_ptr(w) ((TecWorkerPtr)(w))
 
-// Initializes the worker. Use hash_table_size=0 for the default map size.
+// Initializes the worker. Use hash_table_size=0 for the default map size (117).
 TECC_API bool TecWorker_init(TecWorkerPtr w, size_t hash_table_size);
 
-// Registers a callback function to process a message.
+// Registers a handler that processes messages of type `type`.
 #define TecWorker_register(w, type, callback)\
-    TecWorker_register_(TecWorker_ptr(w), TecMsg_type(type), (TecCallbackFunc)callback)
+    TecWorker_register_(TecWorker_ptr(w), TecMsg_type(type), (TecCallbackFunc)(callback))
 
 TECC_API void TecWorker_register_(TecWorkerPtr w, const char* func_name, TecCallbackFunc callback);
 
-// Assigns an initialization handler that called on Worker thread starting.
-#define TecWorker_set_on_init(w, h) TecWorker_ptr(w)->on_init = (TecWorkerFunc)(h)
+// Assigns an initialization handler that is called when a worker thread starts.
+#define TecWorker_set_on_init(w, h) TecWorker_ptr(w)->on_init = (h)
 
-// Assigns an exit handler that called on Worker thread exiting.
-#define TecWorker_set_on_exit(w, h) TecWorker_ptr(w)->on_exit = (TecWorkerFunc)(h)
+// Assigns an exit handler that is called when a worker thread exits.
+#define TecWorker_set_on_exit(w, h) TecWorker_ptr(w)->on_exit = (h)
 
-#define TecWorker_done(self) TecDaemon_done(self)
+#define TecWorker_done(w) TecDaemon_done(w)
 
 // FOR CALLING FROM AN INHERITED OBJECT ONLY.
 TECC_API void TecWorker_done_(TecDaemonPtr);

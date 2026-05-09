@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-03 11:26:19 by magnolia>
+// Time-stamp: <Last changed 2026-05-09 13:15:09 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -17,24 +17,21 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-#include "tecc/tecc_def.h"
+#include "tecc/tecc_def.h"   // IWYU pragma: keep
+#include "tecc/tecc_trace.h" // IWYU pragma: keep
 #include "tecc/tecc_daemon.h"
 #include "tecc/tecc_message.h"
 #include "tecc/tecc_rpc.h"
 #include "tecc/tecc_signal.h"
+#include "tecc/tecc_threads.h"
 #include "tecc/tecc_worker.h"
-#include "tecc/tecc_thread.h"
-#include "tecc/tecc_trace.h"
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
-*                       Thread functions
+*                      Messsage loop
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-// Runs the message loop.
-static int worker_func(void* arg) {
-    /* TECC_TRACE_ENTER("worker_func()"); */
+ *====================================================================*/
+static TECC_THREAD_FUNC_RETVAL worker_func(void* arg) {
     TecWorkerPtr w = (TecWorkerPtr)arg;
     // Initialization.
     if (w->on_init && !w->error) {
@@ -47,15 +44,16 @@ static int worker_func(void* arg) {
             if (msg == NULL) {
                 break;
             }
+            // Dispatches a message.
             w->dispatch(msg, w);
         }
     }
-    // Exiting.
+    // On exiting.
     if (w->on_exit && !w->error) {
         w->error = w->on_exit(w);
     }
     TecSignal_set(&w->sig_terminated);
-    return w->error;
+    TECC_THREAD_FUNC_RETURN(w->error);
 }
 
 
@@ -64,10 +62,9 @@ static void on_msg(TecMsgPtr msg, void* args) {
     TecWorkerPtr w = (TecWorkerPtr)args;
     TecCallbackFunc callback = (TecCallbackFunc)TecMap_get(&w->callbacks, TecMsg_tag(msg));
     if (callback) {
-        // Process a message.
+        // Processes the message.
         callback(msg, w);
     }
-    // Deallocate a message.
     TecMsg_free(msg);
 }
 
@@ -75,16 +72,18 @@ static void on_msg(TecMsgPtr msg, void* args) {
 // Processes an RPC message.
 static void on_rpc(TecRPCPtr rpc, void* args) {
     TecWorkerPtr w = (TecWorkerPtr)args;
-    TecCallbackFunc callback = (TecCallbackFunc)TecMap_get(&w->callbacks, TecMsg_tag(rpc));
+    rpc->error = 0;
+    // We use the `request` member of the RPC message to find a handler.
+    TecCallbackFunc callback =
+        (TecCallbackFunc)TecMap_get(&w->callbacks, TecMsg_tag(rpc->request));
     if (callback) {
-        // Process as a "normal" message.
         callback(TecMsg_ptr(rpc), w);
     }
     else {
         rpc->error = TECC_ERR_HANDLER_NOT_FOUND;
     }
     TecSignal_set(rpc->sig_ready);
-    // We do not deallocate an RPC request!
+    // We do not deallocate the RPC request!
 }
 
 
@@ -110,33 +109,40 @@ static void dispatch(TecMsgPtr msg, void* args) {
 
 static int TecWorker_run_(TecDaemonPtr d) {
     TecWorkerPtr w = (TecWorkerPtr)d;
-    TecMutex_lock(&w->mtx_guard);
+    int err = TecMutex_lock(&w->lock);
+    if (err) {
+        // System error.
+        TecMutex_unlock(&w->lock);
+        return err;
+    }
     // Create the worker thread.
     TecThread_create(&w->worker_thread, w->worker_func, w);
-    if (!w->worker_thread.ok) {
+    if (!TecThread_ok(&w->worker_thread)) {
         // System error.
-        TecMutex_unlock(&w->mtx_guard);
-        return TECC_ERR_SYSTEM;
+        TecMutex_unlock(&w->lock);
+        return TecThread_result(&w->worker_thread);
     }
-    // Waits until the worker thread has started.
+    // Wait until the worker thread has initialized.
     TecSignal_wait(&w->sig_running);
     if (w->error) {
-        // Finish the worker thread.
+        // Initialization error -- finish the worker thread.
         TecThread_join(&w->worker_thread);
     }
-    TecMutex_unlock(&w->mtx_guard);
+    TecMutex_unlock(&w->lock);
     return w->error;
 }
 
 
 static int TecWorker_terminate_(TecDaemonPtr d) {
     TecWorkerPtr w = (TecWorkerPtr)d;
-    TecMutex_lock(&w->mtx_guard);
+    TecMutex_lock(&w->lock);
+    // Enqueues a termination message.
     TecDaemon_send(w, NULL);
+    TecSignal_wait(&w->sig_terminated);
     TecThread_join(&w->worker_thread);
-    int res = w->error;
-    TecMutex_unlock(&w->mtx_guard);
-    return res;
+    int result = w->error;
+    TecMutex_unlock(&w->lock);
+    return result;
 }
 
 
@@ -167,7 +173,7 @@ TECC_IMPL void TecWorker_done_(TecDaemonPtr d) {
     TecSignal_done(&w->sig_terminated);
     TecQueue_done(&w->queue);
     TecMap_done(&w->callbacks);
-    TecMutex_destroy(&w->mtx_guard);
+    TecMutex_destroy(&w->lock);
     // Clean up the parent object.
     TecDaemon_done_(d);
 }
@@ -179,19 +185,20 @@ TECC_IMPL void TecWorker_done_(TecDaemonPtr d) {
  *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 TECC_IMPL bool TecWorker_init(TecWorkerPtr w, size_t hash_table_size) {
-    // Initialize the parent.
+    // Initializes the parent.
     TecDaemon_init(TecDaemon_ptr(w));
-    // Initialize self.
+    // Initializes self.
     bool ok = true;
     w->hash_table_size = hash_table_size;
     // Flags
-    w->error = false;
+    w->error = 0;
     // Initialize
     ok = ok && TecSignal_init(&w->sig_running);
     ok = ok && TecSignal_init(&w->sig_terminated);
     ok = ok && TecQueue_init(&w->queue);
     ok = ok && TecMap_init(&w->callbacks, w->hash_table_size);
-    ok = ok && TecMutex_init(&w->mtx_guard);
+    TecMutex_init(&w->lock);
+    ok = ok && TecMutex_ok(&w->lock);
     w->on_init = NULL; // No special initialization.
     w->on_exit = NULL; // No special exiting.
     w->worker_func = worker_func; // Default worker thread function.
@@ -213,7 +220,7 @@ TECC_IMPL bool TecWorker_init(TecWorkerPtr w, size_t hash_table_size) {
 
 
 TECC_IMPL void TecWorker_register_(TecWorkerPtr w, const char* func_name, TecCallbackFunc callback) {
-    TecMutex_lock(&w->mtx_guard);
+    TecMutex_lock(&w->lock);
     TecMap_set(&w->callbacks, func_name, callback);
-    TecMutex_unlock(&w->mtx_guard);
+    TecMutex_unlock(&w->lock);
 }

@@ -1,3 +1,4 @@
+// Time-stamp: <Last changed 2026-05-09 10:55:38 by magnolia>
 
 #include <stdio.h>
 
@@ -13,6 +14,7 @@ TECC_END_MESSAGE(MsgPoint)
 TECC_DEF_MESSAGE(MsgStr80)
     char s[80];
 TECC_END_MESSAGE(MsgStr80)
+
 
 // NOTE: Callbacks are working in the daemon's internal thread.
 static void on_point(TecMsgPtr msg, void* worker) {
@@ -32,13 +34,13 @@ static void on_str80(TecMsgPtr msg, void* worker) {
 }
 
 // Emulates `on_init`/`on_exit` errors.
-TECC_unused static int on_init(TecWorkerPtr w) {
-    (void)w;
+TECC_unused static int on_init(void* arg) {
+    (void)arg;
     return 1000;
 }
 
-TECC_unused static int on_exit(TecWorkerPtr w) {
-    (void)w;
+TECC_unused static int on_exit(void* arg) {
+    (void)arg;
     return 1234;
 }
 
@@ -79,7 +81,7 @@ int main(void) {
     TECC_MESSAGE(MsgStr80, str);
     strcpy(str->s, "Hello world!");
     TecDaemon_send(&w, str);
-    //
+
     // Terminate the worker.
     error = TecDaemon_terminate(&w);
     // Wait until the worker has terminated.

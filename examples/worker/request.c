@@ -1,11 +1,13 @@
-// Time-stamp: <Last changed 2026-04-30 14:19:08 by magnolia>
+// Time-stamp: <Last changed 2026-05-09 14:25:24 by magnolia>
+/*======================================================================
+*
+* An example of using RPC‑style request/reply via the daemon interface
+*
+ *====================================================================*/
 
 #include <stdio.h>
-#include <threads.h>
 
-#include "tecc/tecc_daemon.h"
-#include "tecc/tecc_service_worker.h"
-#include "tecc/tecc_service.h"
+#include "tecc/tecc_worker.h"
 #include "tecc/tecc_trace.h"
 
 
@@ -24,10 +26,12 @@ TECC_DEF_MESSAGE(GaugeReply)
 TECC_END_MESSAGE(GaugeReply)
 
 
-// This handler will be called from the worker or service internal thread.
-static void on_gauge_request(GaugeRequestPtr request, GaugeReplyPtr reply, void* args) {
+// This RPC handler is being called from the worker internal thread.
+static void on_gauge_request(TecRPCPtr rpc, void* args) {
     TECC_TRACE_ENTER("on_gauge_request()");
     (void)args;
+    GaugeRequestPtr request = (GaugeRequestPtr)rpc->request;
+    GaugeReplyPtr reply = (GaugeReplyPtr)rpc->reply;
     reply->id = request->id;
     reply->units = 'C';
     reply->temperature = 36.7;
@@ -40,8 +44,8 @@ static void analyze(GaugeReplyPtr reply, int error) {
            reply->id, reply->temperature, reply->units, error);
 }
 
-// Requests a temperature of a gauge.
-static void query_gauge(GAUGE_ID id, TecServicePtr svc) {
+// Requests a temperature of a gauge using the Daemon interface.
+static void query_gauge(GAUGE_ID id, TecDaemonPtr d) {
     TECC_TRACE_ENTER("query_gauge()");
     // Prepare a request
     GaugeRequest request;
@@ -57,7 +61,7 @@ static void query_gauge(GAUGE_ID id, TecServicePtr svc) {
     reply.units = '?';
 
     // Query the gauge
-    int error = TecService_rpc(svc, &request, &reply);
+    int error = TecDaemon_rpc(d, &request, &reply);
 
     // Analyze the result.
     analyze(&reply, error);
@@ -65,19 +69,19 @@ static void query_gauge(GAUGE_ID id, TecServicePtr svc) {
 }
 
 // RUN THE SERVICE WORKER USING THE DAEMON INTERFACE.
-static int run(TecDaemonPtr w, TecServicePtr svc) {
+static int run(TecDaemonPtr d) {
     TECC_TRACE_ENTER("run()");
-    int error = TecDaemon_run(w);
+    int error = TecDaemon_run(d);
     if (error) {
         printf("\n*** Inited with code %d\n", error);
         TECC_TRACE_EXIT();
         return error;
     }
     // Waits until the service worker is running.
-    TecDaemon_wait_until_running(w);
+    TecDaemon_wait_until_running(d);
 
     // Query gauges.
-    query_gauge(12, svc);
+    query_gauge(12, d);
 
     TECC_TRACE_EXIT();
     return error;
@@ -85,18 +89,15 @@ static int run(TecDaemonPtr w, TecServicePtr svc) {
 
 int main(void) {
     TECC_TRACE_INIT();
-    // Initialize the service.
-    TecService svc;
-    TecService_init(&svc, 1);
-    TecService_register(&svc, GaugeRequest, on_gauge_request);
 
-    TecServiceWorker w;
-    // Initialize the service worker with the smallest hash table size possible
+    // Initialize the worker with the smallest hash table size possible
     // because we have just one request registered.
-    TecServiceWorker_init(&w, &svc, 1);
+    TecWorker w;
+    TecWorker_init(&w, 1);
+    TecWorker_register(&w, GaugeRequest, on_gauge_request);
 
     // RUN THE SERVICE WORKER USING THE DAEMON INTERFACE.
-    int error = run(TecDaemon_ptr(&w), &svc);
+    int error = run(TecDaemon_ptr(&w));
 
     // Terminates the worker.
     error = TecDaemon_terminate(&w);
@@ -105,7 +106,6 @@ int main(void) {
 
     // Clean up.
     TecDaemon_done(&w);
-    TecService_done(&svc);
     printf("\n*** Exited with code %d\n", error);
     TECC_TRACE_DONE();
     return error;

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-05 02:32:13 by magnolia>
+// Time-stamp: <Last changed 2026-05-09 11:00:27 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -18,6 +18,8 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ----------------------------------------------------------------------*/
 #ifndef TECC_SERVICE_H
 #define TECC_SERVICE_H
+
+#include <stdbool.h>
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
 #include "tecc/tecc_signal.h"

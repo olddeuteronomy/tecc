@@ -41,6 +41,13 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #  define TECC_OS_MACOS_ __APPLE__
 #endif
 
+// Use POSIX pthead API on non-Windows systems.
+#ifndef TECC_NO_PTHREAD
+#  ifndef TECC_OS_WINDOWS_
+#    define TECC_PTHREAD
+#  endif
+#endif
+
 // New line.
 #if defined (TECC_OS_WINDOWS_)
 #  define TECC_NL "\r\n"
@@ -66,6 +73,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 // Get a pointer to a `member` inside a struct `type`.
 #define TECC_CONTAINER_OF(ptr, type, member) \
     ((type *)((char *)(ptr) - offsetof(type, member)))
+
 
 
 #define TECC_API

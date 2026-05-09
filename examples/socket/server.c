@@ -1,15 +1,17 @@
-// Time-stamp: <Last changed 2026-05-05 02:39:01 by magnolia>
+// Time-stamp: <Last changed 2026-05-09 14:35:05 by magnolia>
 
 #include <signal.h>
 #include <stdio.h>
 
+#include "tecc/tecc_def.h"    // IWYU pragma: keep
+#include "tecc/tecc_trace.h"  // IWYU pragma: keep
 #include "tecc/tecc_buffer.h"
 #include "tecc/tecc_service.h"
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_socket.h"
-#include "tecc/tecc_thread.h"
-#include "tecc/tecc_trace.h"
+#include "tecc/tecc_threads.h"
 #include "tecc/tecc_tcp_server.h"
+#include "tecc/tecc_worker.h"
 
 
 static TecSignal sig_started = {0};
@@ -17,12 +19,12 @@ static TecSignal sig_stopped = {0};
 static int error = 0;
 
 // Start the service in the separate thread.
-static int service_thread(void* args) {
+static TECC_THREAD_FUNC_RETVAL service_thread(void* args) {
     TECC_TRACE_ENTER("service_thread");
     TecServicePtr svc = TecService_ptr(args);
     svc->start(svc, &sig_started, &error);
     TECC_TRACE_EXIT();
-    return error;
+    TECC_THREAD_FUNC_RETURN(error);
 }
 
 static TecSignal sig_quit;

@@ -1,4 +1,4 @@
-# Time-stamp: <Last changed 2026-04-21 01:15:39 by magnolia>
+# Time-stamp: <Last changed 2026-05-09 14:56:48 by magnolia>
 
 ifndef CC_STD
 CC_STD := c17
@@ -12,6 +12,10 @@ CFLAGS := -std=$(CC_STD) -Wall -Wextra -Werror $(DEPS)
 
 ifdef TRACE_ON
 CFLAGS += -DTECC_TRACE_ON=1
+endif
+
+ifdef NO_PTHREAD
+CFLAGS += -DTECC_NO_PTHREAD=1
 endif
 
 ########################################################################

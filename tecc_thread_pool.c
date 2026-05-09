@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-07 11:02:41 by magnolia>
+// Time-stamp: <Last changed 2026-05-09 13:17:27 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -22,10 +22,11 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include "tecc/tecc_def.h"    // IWYU pragma: keep
 #include "tecc/tecc_trace.h"  // IWYU pragma: keep
 #include "tecc/tecc_memory.h"
-#include "tecc/tecc_thread.h"
+#include "tecc/tecc_threads.h"
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_queue.h"
 #include "tecc/tecc_arena.h"
+#include "tecc/tecc_worker.h"
 #include "tecc/tecc_thread_pool.h"
 
 /*======================================================================
@@ -44,7 +45,7 @@ typedef struct tagTecTaskNode {
 typedef TecTaskNode* TecTaskNodePtr;
 
 
-static int task_func(void* args) {
+static TECC_THREAD_FUNC_RETVAL task_func(void* args) {
     TecTaskNodePtr node = (TecTaskNodePtr)args;
     while (true) {
         TecTaskPtr task = TecQueue_pop(&node->q);

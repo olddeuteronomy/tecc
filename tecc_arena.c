@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-07 10:32:57 by magnolia>
+// Time-stamp: <Last changed 2026-05-09 11:37:11 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -17,12 +17,14 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 #include <stdatomic.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "tecc/tecc_def.h"
 #include "tecc/tecc_memory.h"
 #include "tecc/tecc_signal.h"
+#include "tecc/tecc_threads.h"
 #include "tecc/tecc_trace.h"
 #include "tecc/tecc_arena.h"
 
@@ -37,16 +39,17 @@ TECC_IMPL bool TecArena_init(TecArenaPtr arena, size_t nelems, size_t elem_size)
     arena->elem_size = elem_size;
     arena->capacity = nelems;
     arena->allocated = 0;
-    bool ok = TecMutex_init(&arena->lock);
-    if (nelems) {
-        arena->buf = TECC_CALLOC(nelems, elem_size);
-    }
-    else {
-        arena->buf = NULL;
-    }
+    arena->buf = NULL;
     arena->free_list = NULL;
     atomic_store(&arena->allocated, 0);
-    return ok;
+    TecMutex_init(&arena->lock);
+    if (TecMutex_ok(&arena->lock)) {
+        if (nelems) {
+            arena->buf = TECC_CALLOC(nelems, elem_size);
+        }
+        return true;
+    }
+    return false;
 }
 
 

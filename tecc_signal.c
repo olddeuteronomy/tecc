@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-17 13:50:06 by magnolia>
+// Time-stamp: <Last changed 2026-05-09 13:13:08 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -16,36 +16,16 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
+#include <errno.h>
+#include <stdbool.h>
+#include <threads.h>
 
 #include "tecc/tecc_def.h"
-#include "tecc/tecc_time.h"
+#include "tecc/tecc_threads.h"
 #include "tecc/tecc_signal.h"
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*
-*                         Helpers
-*
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-TECC_IMPL bool TecMutex_init(TecMutexPtr _mtx) {
-    _mtx->ok = (mtx_init(&(_mtx)->m, mtx_plain) == thrd_success);
-    return _mtx->ok;
-}
-
-TECC_IMPL bool TecCV_init(TecCVPtr _cv) {
-    _cv->ok = (cnd_init(&(_cv)->c) == thrd_success);
-    return _cv->ok;
-}
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*
-*                       Signal
-*
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-// Initialize Signal. Returns true on success, false on failure.
-TECC_IMPL bool TecSignal_init(TecSignal* sig)
-{
+TECC_IMPL bool TecSignal_init(TecSignalPtr sig) {
     atomic_init(&sig->value, 0);
     TecMutex_init(&sig->mtx);
     if (!TecMutex_ok(&sig->mtx)) {
@@ -53,88 +33,85 @@ TECC_IMPL bool TecSignal_init(TecSignal* sig)
     }
     TecCV_init(&sig->cnd);
     if (!TecCV_ok(&sig->cnd)) {
+        TecMutex_destroy(&sig->mtx);
         return false;
     }
     return true;
 }
 
 
-// Destructor. Behavior undefined if threads are still waiting.
-TECC_IMPL void TecSignal_done(TecSignal* sig)
-{
+TECC_IMPL void TecSignal_done(TecSignal* sig) {
     TecCV_destroy(&sig->cnd);
     TecMutex_destroy(&sig->mtx);
 }
 
 
-// Set the atomic value to 1 and notify all waiters.
-TECC_IMPL void TecSignal_set(TecSignal* sig)
-{
+TECC_IMPL int TecSignal_set(TecSignal* sig) {
     atomic_store_explicit(&sig->value, 1, memory_order_release);
-    // Wake waiters. Lock to synchronize with waiters that may be about to wait.
-    if (TecMutex_lock(&sig->mtx) == thrd_success) {
-        TecCV_broadcast(&sig->cnd);
+    // Wake waiters.
+    int err = TecMutex_lock(&sig->mtx);
+    if (!err) {
+        err = TecCV_broadcast(&sig->cnd);
         TecMutex_unlock(&sig->mtx);
     }
     else {
-        // If lock fails, still attempt a broadcast without lock as fallback.
-        TecCV_broadcast(&sig->cnd);
+        // If lock fails, still attempt a broadcast.
+        err = TecCV_broadcast(&sig->cnd);
     }
+    return err;
 }
 
 
-// Wait until Signal is set. Blocks indefinitely.
-TECC_IMPL void TecSignal_wait(TecSignal* sig)
-{
-    // Fast-path check without locking to avoid unnecessary mutex ops.
+TECC_IMPL int TecSignal_wait(TecSignal* sig) {
     if (atomic_load_explicit(&sig->value, memory_order_acquire) == 1) {
-        return;
+        // Already signalled.
+        return 0;
     }
-    // Lock and wait on condition variable until predicate satisfied.
-    TecMutex_lock(&sig->mtx);
+    // Lock and wait.
+    int err = TecMutex_lock(&sig->mtx);
+    if (err) {
+        return err;
+    }
     while (atomic_load_explicit(&sig->value, memory_order_acquire) != 1) {
-        TecCV_wait(&sig->cnd, &sig->mtx);
+        err = TecCV_wait(&sig->cnd, &sig->mtx);
+        if (err) {
+            break;
+        }
     }
     TecMutex_unlock(&sig->mtx);
+    return err;
 }
 
 
-// Wait until Signal is set or timeout (in nanoseconds) elapses.
-// Returns false on timeout or error.
-TECC_IMPL bool TecSignal_wait_for(TecSignal * sig, TecTimePoint timeout)
-{
-    /* Fast-path check */
+TECC_IMPL int TecSignal_wait_for(TecSignal * sig, TecTimePoint timeout) {
     if (atomic_load_explicit(&sig->value, memory_order_acquire) == 1) {
-        return true;
+        return 0;
     }
-
-    /* Compute absolute deadline */
+    // Computes absolute deadline in nanosec.
     TecTimePoint deadline = tec_tp_now();
     if (deadline == 0) {
-        return false;
+        return EINVAL;
     }
     deadline += timeout;
-    /* Convert to time spec */
+    // Converts to time spec
     struct timespec ts;
     tec_tp_to_ts(deadline, &ts);
-
-    if (TecMutex_lock(&sig->mtx) != thrd_success) {
-        return false;
+    // Locks and waits.
+    int err = TecMutex_lock(&sig->mtx);
+    if (err) {
+        TecMutex_unlock(&sig->mtx);
+        return err;
     }
-
-    bool ok = false;
     while (atomic_load_explicit(&sig->value, memory_order_acquire) != 1) {
-        int cndres = TecCV_timedwait(&sig->cnd, &sig->mtx, &ts);
-        if (atomic_load_explicit(&sig->value, memory_order_acquire) == 1) {
-            ok = true;
-            break;
-        }
-        if (cndres == thrd_timedout) {
-            ok = false;
+        int cnd_err = TecCV_timedwait(&sig->cnd, &sig->mtx, &ts);
+        /* if (atomic_load_explicit(&sig->value, memory_order_acquire) == 1) { */
+        /*     break; */
+        /* } */
+        if (cnd_err != 0) {
+            err = cnd_err;
             break;
         }
     }
-
     TecMutex_unlock(&sig->mtx);
-    return ok;
+    return err;
 }

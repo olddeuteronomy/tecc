@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-05 00:07:36 by magnolia>
+// Time-stamp: <Last changed 2026-05-09 13:15:36 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -21,7 +21,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #define TECC_SERVICE_WORKER_H
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
-#include "tecc/tecc_thread.h"
+#include "tecc/tecc_threads.h"
 #include "tecc/tecc_worker.h"
 
 #ifdef __cplusplus
@@ -35,7 +35,7 @@ typedef TecService* TecServicePtr;
 /*======================================================================
 *
 *          ServiceWorker combines Service and Worker for
-*             running Service in a dedicated thread.
+*             running Service in a dedicated thread .
 *
  *====================================================================*/
 
@@ -45,6 +45,7 @@ typedef TecServiceWorker* TecServiceWorkerPtr;
 // Inherited from TecWorker (824 bytes).
 typedef struct tagTecServiceWorker {
     TecWorker worker;
+    int error;
     TecServicePtr service;
     TecSignal sig_started;
     TecSignal sig_stopped;
@@ -63,7 +64,7 @@ typedef struct tagTecServiceWorker {
 #define TecServiceWorker_init(self, service, hash_table_size)\
     TecServiceWorker_init_(TecServiceWorker_ptr(self), TecService_ptr(service), (hash_table_size))
 
-TECC_API bool TecServiceWorker_init_(TecServiceWorkerPtr self, TecServicePtr service, size_t hash_table_size);
+TECC_API bool TecServiceWorker_init_(TecServiceWorkerPtr, TecServicePtr, size_t);
 
 // FOR CALLING FROM AN INHERITED OBJECT ONLY!
 TECC_API void TecServiceWorker_done_(TecDaemonPtr);

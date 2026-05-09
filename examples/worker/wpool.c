@@ -1,16 +1,17 @@
 
 #include <stdio.h>
 
-#include "tecc/tecc_buffer.h"
 #include "tecc/tecc_def.h"    // IWYU pragma: keep
 #include "tecc/tecc_trace.h"  // IWYU pragma: keep
+#include "tecc/tecc_buffer.h"
 #include "tecc/tecc_message.h"
 #include "tecc/tecc_worker_pool.h"
 
 
-static void process(void* payload, TecBuffer buf) {
+static void process(void* payload, TecBuffer buf, void* args) {
     (void)buf;
     (void)payload;
+    (void)args;
     TECC_TRACE_ENTER("process");
     TECC_TRACE_EXIT();
 }
@@ -18,7 +19,7 @@ static void process(void* payload, TecBuffer buf) {
 void test(TecWorkerPoolPtr wp) {
     TECC_MESSAGE(TecTask, t);
     t->invoke = process;
-    TecWorkerPool_dispatch_task(wp, t, NULL);
+    TecWorkerPool_dispatch_task(wp, t, NULL, NULL);
 }
 
 int main(void) {

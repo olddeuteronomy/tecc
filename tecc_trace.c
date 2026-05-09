@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-23 11:10:37 by magnolia>
+// Time-stamp: <Last changed 2026-05-09 14:51:51 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -18,18 +18,25 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ----------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdarg.h>
-#include <threads.h>
+#include <errno.h>
 
 #include "tecc/tecc_def.h"
-#include "tecc/tecc_signal.h"
+#include "tecc/tecc_threads.h"
 #include "tecc/tecc_time.h"
 #include "tecc/tecc_trace.h"
 
+#ifdef TECC_PTHREAD
+#  define THREAD_LOCAL
+#  define GET_THREAD_ID() pthread_self()
+#else
+#  define THREAD_LOCAL thread_local
+#  define GET_THREAD_ID() thrd_current()
+#endif
 
-static TecMutex guard_ = {false};
+static TecMutex guard_ = {.result=EINVAL};
 
 static const int shift = 2;
-thread_local static int level = 0;
+THREAD_LOCAL static int level = 0;
 static const char zs[1] = {0};
 
 
@@ -42,15 +49,15 @@ TECC_IMPL void tec_trace_done() {
 }
 
 TECC_IMPL void tec_trace_enter(TecTracerPtr tr) {
-    if (!guard_.ok) return;
+    if (guard_.result) return;
     TecMutex_lock(&guard_);
-    printf("%*s+ %s entered @TID=%08lx.\n", level, zs, tr->name, thrd_current());
+    printf("%*s+ %s entered @TID=%08lx.\n", level, zs, tr->name, GET_THREAD_ID());
     level += shift;
     TecMutex_unlock(&guard_);
 }
 
 TECC_IMPL void tec_trace_exit(TecTracerPtr tr) {
-    if (!guard_.ok) return;
+    if (guard_.result) return;
     TecMutex_lock(&guard_);
     level -= shift;
     TecTimePoint diff_time_ns = tec_tp_now() - tr->start_time;
@@ -62,7 +69,7 @@ TECC_IMPL void tec_trace_exit(TecTracerPtr tr) {
 
 
 TECC_IMPL void tec_trace(TecTracerPtr tr, const char* fmt, ...) {
-    if (!guard_.ok) return;
+    if (guard_.result) return;
     TecMutex_lock(&guard_);
     printf("%*s* %s: ", level, zs, tr->name);
     va_list args;
