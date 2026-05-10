@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-09 15:18:53 by magnolia>
+// Time-stamp: <Last changed 2026-05-10 15:16:52 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -31,9 +31,15 @@ typedef void* (*TecThreadFunc)(void*);
 typedef pthread_mutex_t TecMutexType;
 typedef pthread_cond_t TecCVType;
 
+#define TECC_THREAD_FUNC_RETVAL void*
+#define TECC_THREAD_FUNC_RETURN(val_) return &(val_)
+
 #else
 // Use STDC
 #include <threads.h>
+
+#define TECC_THREAD_FUNC_RETVAL int
+#define TECC_THREAD_FUNC_RETURN(val_) return (val_)
 
 typedef thrd_t TecThrType;
 typedef thrd_start_t TecThreadFunc;
@@ -105,7 +111,8 @@ typedef TecCV* TecCVPtr;
     } while(0)
 
 #define TecThread_join(self) do {\
-        if (TecThread_ok(self)) { pthread_join((self)->t, NULL); }\
+        if (TecThread_ok(self)) { pthread_join((self)->t, NULL);\
+            (self)->result = 22; }\
     } while(0)
 
 /*======================================================================
@@ -154,7 +161,8 @@ typedef TecCV* TecCVPtr;
     } while(0)
 
 #define TecThread_join(self) do {\
-        if (TecThread_ok(self)) { thrd_join((self)->t, &((self)->result)); }\
+        if (TecThread_ok(self)) { thrd_join((self)->t, &((self)->result));\
+            (self)->result = 22; }\                                                               \
     } while(0)
 
 /*======================================================================

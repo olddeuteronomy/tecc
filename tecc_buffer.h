@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-28 03:52:20 by magnolia>
+// Time-stamp: <Last changed 2026-05-10 14:00:57 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -72,9 +72,8 @@ TECC_API TecBuffer TecBuffer_create_(size_t initial_size, size_t block_size);
 
 #define TecBuffer_create(...) TECC_GET_MACRO_2(__VA_ARGS__, TecBuffer_create2, TecBuffer_create1, TecBuffer_create0)(__VA_ARGS__)
 
-
 // Initialize the buffer inplace.
-// `initial_size` can be 0, no memory will be allocated in this case.
+// `initial_size` can be 0, no allocation occurs in this case.
 // If `block_size` is 0, TECC_BUFFER_BLOCK_SIZE will be used.
 TECC_API void TecBuffer_init_(TecBufferPtr buf, size_t initial_size, size_t block_size);
 

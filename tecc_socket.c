@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-05 01:38:52 by magnolia>
+// Time-stamp: <Last changed 2026-05-10 14:31:37 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -363,24 +363,17 @@ TECC_IMPL int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst) {
     TECC_TRACE_ENTER("Socket::read()");
     ssize_t received = 0;
     char* buffer = sock->buf.data;
-    size_t buffer_size = sock->buf.size;
+    size_t buffer_size = sock->buf.capacity;
     int err = 0;
-    //
     // Read data from the socket.
-    //
     do {
         received = read(sock->fd, buffer, buffer_size);
         if (received > 0) {
             TecBuffer_write(dst, buffer, received);
             TECC_TRACE("%s:%d --> RECV %zd bytes.\n", sock->addr, sock->port, received);
         }
-        /* if (received < (ssize_t)buffer_size) { */
-        /*     break; */
-        /* } */
     } while (received);
-    //
     // Check for errors.
-    //
     if (received == 0) {
         TECC_TRACE("%s:%d Peer closed the connection.\n", sock->addr, sock->port);
     }
@@ -399,14 +392,10 @@ TECC_IMPL int TecSocket_write(TecSocketPtr sock, TecBufferPtr src) {
     TECC_TRACE_ENTER("Socket::write()");
     ssize_t sent = 0;
     int err = 0;
-    //
     // Write data to the socket.
-    //
     if (src->size) {
         sent = write(sock->fd, src->data, src->size);
-        //
         // Check for errors.
-        //
         if (sent < 0) {
             err = errno;
             TECC_TRACE("!!! %s:%d Write error %d.\n", sock->addr, sock->port, err);
@@ -432,6 +421,6 @@ TECC_IMPL int TecSocket_write_str(TecSocketPtr sock, char* s) {
     }
     int len = strlen(s) + 1; // Include terminating 0.
     // Temp static buffer.
-    TecBuffer buf = {.data=s, .size=len};
+    TecBuffer buf = {.data=s, .size=len, .capacity=len};
     return TecSocket_write(sock, &buf);
 }

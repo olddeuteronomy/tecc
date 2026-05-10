@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-07 11:06:41 by magnolia>
+// Time-stamp: <Last changed 2026-05-10 12:37:42 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -47,7 +47,7 @@ typedef TecTaskNode* TecTaskNodePtr;
 // A function executed by a thread from the pool.
 typedef void (*TecTaskFunc)(void* payload, TecBuffer buf, void* args);
 
-// Thread pool = 64 bytes.
+// Thread pool = 56 bytes.
 typedef struct tagTecThrPool {
     size_t nthreads;              // Number of threads.
     TecTaskNodePtr nodes;         // Internal.
@@ -56,7 +56,6 @@ typedef struct tagTecThrPool {
     char* buffer_arena;           // NULL if `buffer_size` is 0.
     size_t payload_size;          // Size of payload per task, may be 0.
     char* payload_arena;          // Preallocated payload arena if any.
-    TecTaskFunc task_func;        // A function executed by a thread from the pool.
 } TecThrPool;
 typedef TecThrPool* TecThrPoolPtr;
 
@@ -87,7 +86,9 @@ TECC_API bool TecThrPool_run(TecThrPoolPtr);
 
 TECC_API void TecThrPool_done(TecThrPoolPtr);
 
-TECC_API void TecThrPool_enqueue(TecThrPoolPtr self, void* payload, void* args);
+TECC_API void TecThrPool_enqueue(TecThrPoolPtr self,
+                                 TecTaskFunc task_func,
+                                 void* payload, void* args);
 
 #ifdef __cplusplus
 }

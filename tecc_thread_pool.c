@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-09 13:17:27 by magnolia>
+// Time-stamp: <Last changed 2026-05-10 12:39:52 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -112,8 +112,6 @@ TECC_IMPL void TecThrPool_init(TecThrPoolPtr self,
     self->buffer_size = buffer_size;
     self->payload_size = payload_size;
     atomic_init(&self->next_thread_index, 0);
-    // A function executed by a thread from the pool.
-    self->task_func = NULL;
     // Preallocated buffer arena.
     self->buffer_arena = NULL;
     if (buffer_size) {
@@ -169,7 +167,9 @@ TECC_IMPL void TecThrPool_done(TecThrPoolPtr self) {
 }
 
 
-TECC_IMPL void TecThrPool_enqueue(TecThrPoolPtr self, void* payload, void* args) {
+TECC_IMPL void TecThrPool_enqueue(TecThrPoolPtr self,
+                                  TecTaskFunc task_func,
+                                  void* payload, void* args) {
     TECC_TRACE_ENTER("ThrPool::enqueue()");
     // Gets the next thread index in round-robin fashion.
     size_t ndx = atomic_fetch_add_explicit(
@@ -188,13 +188,14 @@ TECC_IMPL void TecThrPool_enqueue(TecThrPoolPtr self, void* payload, void* args)
     if (payload && task->payload) {
         memcpy(task->payload, payload, self->payload_size);
     }
-    // Arguments
+    // Extra arguments and task function.
+    task->task_func = task_func;
     task->args = args;
     TECC_TRACE("Task IDX=%zu buf_size=%zu, payload_size=%zu, allocated at %s.\n",
                ndx, task->buffer_size, self->payload_size,
                (task->hdr.flags & TECC_ARENA_ALLOCATED) ? "arena" : "heap"
         );
-    // Send the task for execution.
+    // Enqueue the task for execution.
     TecTaskNode_enqueue_task(node, task);
     TECC_TRACE_EXIT();
 }

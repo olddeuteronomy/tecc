@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-09 14:52:19 by magnolia>
+// Time-stamp: <Last changed 2026-05-10 13:20:57 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -43,14 +43,9 @@ typedef TecWorker* TecWorkerPtr;
 
 #ifdef TECC_PTHREAD
 // POSIX
-#define TECC_THREAD_FUNC_RETVAL void*
-#define TECC_THREAD_FUNC_RETURN(val_) return &(val_)
 typedef void* (*TecWorkerFunc)(TecWorkerPtr);
-
 #else
 // STDC
-#define TECC_THREAD_FUNC_RETVAL int
-#define TECC_THREAD_FUNC_RETURN(val_) return (val_)
 typedef int (*TecWorkerFunc)(TecWorkerPtr);
 #endif
 

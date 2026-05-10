@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-05 01:10:40 by magnolia>
+// Time-stamp: <Last changed 2026-05-10 14:31:46 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -25,7 +25,7 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include "tecc/tecc_buffer.h"
 #include "tecc/tecc_socket.h"
 #include "tecc/tecc_service.h"
-#include "tecc/tecc_worker_pool.h"
+#include "tecc/tecc_thread_pool.h"
 #include "tecc/tecc_tcp_server.h"
 
 
@@ -61,9 +61,15 @@ static void poll_(TecTCPServerPtr self) {
         // Get client socket.
         TecSocket cli = TecSocket_accept(&self->sock);
         if (TecSocket_is_valid(&cli)) {
-            TECC_MESSAGE(TecTask, task);
-            task->invoke = (TecTaskInvokeFunc)dispatch_client;
-            TecWorkerPool_dispatch_task(&self->pool, task, &cli, self);
+            if (self->thread_pool) {
+                // Multi-threaded server that uses the thread pool.
+                TecThrPool_enqueue(self->thread_pool, (TecTaskFunc)dispatch_client,
+                                   &cli, self);
+            }
+            else {
+                // Single-threaded server.
+                dispatch_client(&cli, self->buffer, self);
+            }
         }
     }
     TECC_TRACE_EXIT();
@@ -96,6 +102,12 @@ static void start_(TecServicePtr svc, TecSignalPtr sig_started, int* error) {
         TecSignal_set(sig_started);
     }
     else {
+        // Use local buffer if no thread pool attached.
+        if (self->thread_pool == NULL) {
+            TecBuffer_init(&self->buffer,
+                           self->socket_params->buffer_size,
+                           self->socket_params->buffer_size);
+        }
         // Start polling.
         TECC_TRACE("Service started OK.\n");
         TecSignal_set(sig_started);
@@ -127,21 +139,14 @@ TECC_IMPL void TecTCPServer_init_(TecTCPServerPtr self,
     TecService_init(&self->service);
     self->server_params = server_params;
     self->socket_params = socket_params;
-    // Listening socket initilization.
+    // Initialize the listening socket.
     TecSocket_init_server(&self->sock, socket_params);
-    // Polling
+    // Internal buffer for single-threaded server; initially empty.
+    TecBuffer_init(&self->buffer, 0, self->socket_params->buffer_size);
+    // Polling.
     TecSignal_init(&self->sig_polling_stopped);
     atomic_init(&self->running, true);
-    // Worker pool.
-    size_t num_workers = self->server_params->worker_pool_size;
-    if (num_workers == 0) {
-        num_workers = 1;
-    }
-    TecWorkerPool_init(&self->pool, num_workers,
-                       self->socket_params->buffer_size,
-                       sizeof(TecSocket));
-    // TODO: check pool status.
-    TecWorkerPool_run(&self->pool);
+    self->thread_pool = NULL; // Single-threaded server by default.
     // Overrides.
     self->service.start = start_;
     self->service.shutdown = shutdown_;
@@ -155,8 +160,8 @@ TECC_IMPL void TecTCPServer_init_(TecTCPServerPtr self,
 
 TECC_IMPL void TecTCPServer_done_(TecServicePtr svc) {
     TecTCPServerPtr self = TecTCPServer_ptr(svc);
-    TecWorkerPool_done(&self->pool);
     TecSignal_done(&self->sig_polling_stopped);
     TecSocket_done(&self->sock);
+    TecBuffer_done(&self->buffer);
     TecService_done_(&self->service);
 }

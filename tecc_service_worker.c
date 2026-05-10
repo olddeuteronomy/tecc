@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-09 13:15:50 by magnolia>
+// Time-stamp: <Last changed 2026-05-10 15:19:52 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -55,6 +55,11 @@ static int on_init(void* arg) {
     }
     // Wait until the Service has started.
     TecSignal_wait(&self->sig_started);
+    if (self->error) {
+        // Stop service on error.
+        TecThread_join(&self->service_thread);
+        TecSignal_set(&self->sig_stopped);
+    }
     return self->error;
 }
 
@@ -62,6 +67,7 @@ static int on_init(void* arg) {
 static int on_exit(void* arg) {
     TecServiceWorkerPtr self = TecServiceWorker_ptr(arg);
     TecThread exit_thread;
+    TecThread_init(&exit_thread);
     // Run a thread which stops the service.
     TecThread_create(&exit_thread, service_shutdown_func, self);
     if (TecThread_ok(&exit_thread)) {
@@ -84,6 +90,7 @@ TECC_IMPL void TecServiceWorker_done_(TecDaemonPtr d) {
     TecServiceWorkerPtr self = TecServiceWorker_ptr(d);
     TecSignal_done(&self->sig_stopped);
     TecSignal_done(&self->sig_started);
+    TecThread_join(&self->service_thread);
     TecWorker_done_(d);
 }
 
@@ -92,6 +99,7 @@ TECC_IMPL bool TecServiceWorker_init_(TecServiceWorkerPtr self, TecServicePtr se
     bool ok = TecWorker_init(&self->worker, hash_table_size);
     self->error = 0;
     self->service = service;
+    TecThread_init(&self->service_thread);
     ok = ok && TecSignal_init(&self->sig_started);
     ok = ok && TecSignal_init(&self->sig_stopped);
     if (ok) {

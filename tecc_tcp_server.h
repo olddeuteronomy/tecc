@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-05 00:06:34 by magnolia>
+// Time-stamp: <Last changed 2026-05-10 13:38:58 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -26,7 +26,6 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include "tecc/tecc_service.h"
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_socket.h"
-#include "tecc/tecc_worker_pool.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,10 +58,14 @@ TECC_API void TecTCPServerParams_init_(TecTCPServerParamsPtr);
 *
  *====================================================================*/
 
+// Forward references.
+typedef struct tagTecThrPool TecThrPool;
+typedef TecThrPool* TecThrPoolPtr;
+
 typedef struct tagTecTCPServer TecTCPServer;
 typedef TecTCPServer* TecTCPServerPtr;
 
-// 376 bytes.
+// Multithreaded (if configured) TCP server. 368 bytes.
 typedef struct tagTecTCPServer {
     TecService service;
     TecTCPServerParamsPtr server_params;
@@ -74,7 +77,8 @@ typedef struct tagTecTCPServer {
     TecSignal sig_polling_stopped;
     void (*poll)(TecTCPServerPtr);
     // Incoming connections.
-    TecWorkerPool pool;
+    TecBuffer buffer;          // Single-threaded server buffer.
+    TecThrPoolPtr thread_pool; // NULL by default (single-threaded server).
     void (*dispatch_client)(TecSocketPtr, TecBuffer, TecTCPServerPtr);
     void (*process_client)(TecSocketPtr);
 } TecTCPServer;

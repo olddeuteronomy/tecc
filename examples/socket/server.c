@@ -1,31 +1,15 @@
-// Time-stamp: <Last changed 2026-05-09 14:35:05 by magnolia>
+// Time-stamp: <Last changed 2026-05-10 15:45:02 by magnolia>
 
-#include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
 
+#include "tecc/tecc_buffer.h"
 #include "tecc/tecc_def.h"    // IWYU pragma: keep
 #include "tecc/tecc_trace.h"  // IWYU pragma: keep
-#include "tecc/tecc_buffer.h"
-#include "tecc/tecc_service.h"
-#include "tecc/tecc_signal.h"
-#include "tecc/tecc_socket.h"
-#include "tecc/tecc_threads.h"
 #include "tecc/tecc_tcp_server.h"
-#include "tecc/tecc_worker.h"
+#include "tecc/tecc_service_worker.h"
 
-
-static TecSignal sig_started = {0};
-static TecSignal sig_stopped = {0};
-static int error = 0;
-
-// Start the service in the separate thread.
-static TECC_THREAD_FUNC_RETVAL service_thread(void* args) {
-    TECC_TRACE_ENTER("service_thread");
-    TecServicePtr svc = TecService_ptr(args);
-    svc->start(svc, &sig_started, &error);
-    TECC_TRACE_EXIT();
-    TECC_THREAD_FUNC_RETURN(error);
-}
 
 static TecSignal sig_quit;
 
@@ -48,16 +32,17 @@ static void parse_args(int argc, char* argv[], TecSocketParamsPtr params) {
 
 
 // Process client connection.
+
+static TecBuffer data;
+
 static void process_str(TecSocketPtr sock) {
     TECC_TRACE_ENTER("process_str");
     TECC_TRACE("Socket: FD=%d, data=%p, size=%zu.\n", sock->fd, sock->buf.data, sock->buf.size);
-    TecBuffer data;
-    TecBuffer_init(&data, 1024, 1024);
+    TecBuffer_rewind(&data);
     int err = TecSocket_read(sock, &data);
     if (!err) {
         puts(data.data);
     }
-    TecBuffer_done(&data);
     TECC_TRACE_EXIT();
 }
 
@@ -65,13 +50,13 @@ static void process_str(TecSocketPtr sock) {
 int main(int argc, char* argv[]) {
     TECC_TRACE_INIT();
     TECC_TRACE_ENTER("main");
-    TecSignal_init(&sig_quit);
 
     // Set Ctrl-C handler that stops polling.
+    TecSignal_init(&sig_quit);
     signal(SIGINT, handle_sigint);
 
-    TecSignal_init(&sig_started);
-    TecSignal_init(&sig_stopped);
+    // Allocate data buffer.
+    TecBuffer_init(&data, 1024, 1024);
 
     TecSocketParams socket_params;
     TecSocketParams_init(&socket_params);
@@ -82,33 +67,31 @@ int main(int argc, char* argv[]) {
     TecTCPServerParams_init(&server_params);
     server_params.worker_pool_size = 8;
 
-    TecTCPServer srv;
-    TecTCPServer_init(&srv, &server_params, &socket_params);
-    // Process incoming connection.
-    srv.process_client = process_str;
+    TecTCPServer server;
+    TecTCPServer_init(&server, &server_params, &socket_params);
+    // Incoming connection processor.
+    server.process_client = process_str;
 
-    // Start the server in the separate thread.
-    TecThread th;
-    TecThread_create(&th, service_thread, &srv);
-    TecSignal_wait(&sig_started);
+    TecServiceWorker service_worker;
+    TecServiceWorker_init(&service_worker, &server, 1);
 
+    // Start the server via ServiceWorker using Daemon API.
+    int error = TecDaemon_run(&service_worker);
     if (!error) {
         // Wait until quit signalled...
         TecSignal_wait(&sig_quit);
-        // ... then shutdown the server.
-        TecServicePtr svc = TecService_ptr(&srv);
-        svc->shutdown(svc, &sig_stopped);
-        TecSignal_wait(&sig_stopped);
+        // ... then terminate the service worker.
+        TecDaemon_terminate(&service_worker);
+        TecDaemon_wait_until_terminated(&service_worker);
     }
 
     // Clean up.
-    TecThread_join(&th);
-    TecTCPServerParams_done(&server_params);
     TecSocketParams_done(&socket_params);
-    TecTCPServer_done(&srv);
-    TecSignal_done(&sig_stopped);
-    TecSignal_done(&sig_started);
+    TecTCPServerParams_done(&server_params);
+    TecTCPServer_done(&server);
+    TecDaemon_done(&service_worker);
     TecSignal_done(&sig_quit);
+    TecBuffer_done(&data);
 
     TECC_TRACE_EXIT();
     TECC_TRACE_DONE();
