@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-10 12:39:52 by magnolia>
+// Time-stamp: <Last changed 2026-05-11 02:26:11 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -26,7 +26,6 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include "tecc/tecc_signal.h"
 #include "tecc/tecc_queue.h"
 #include "tecc/tecc_arena.h"
-#include "tecc/tecc_worker.h"
 #include "tecc/tecc_thread_pool.h"
 
 /*======================================================================
@@ -57,6 +56,7 @@ static TECC_THREAD_FUNC_RETVAL task_func(void* args) {
             TecBuffer buf = {0};
             buf.data = task->buffer;
             buf.size = task->buffer_size;
+            buf.capacity = task->buffer_size;
             task->task_func(task->payload, buf, task->args);
         }
         TecArena_release(&node->arena, (TecArenaElemPtr)task);
@@ -86,9 +86,11 @@ static void TecTaskNode_enqueue_task(TecTaskNodePtr node, TecTaskPtr task) {
 }
 
 static void TecTaskNode_done(TecTaskNodePtr self) {
-    TecQueue_push(&self->q, NULL);
-    TecSignal_wait(&self->sig_terminated);
-    TecThread_join(&self->thr);
+    if (TecThread_ok(&self->thr)) {
+        TecQueue_push(&self->q, NULL);
+        TecSignal_wait(&self->sig_terminated);
+        TecThread_join(&self->thr);
+    }
     TecQueue_done(&self->q);
     TecArena_done(&self->arena);
     TecSignal_done(&self->sig_terminated);

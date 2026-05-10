@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-10 13:38:58 by magnolia>
+// Time-stamp: <Last changed 2026-05-11 00:47:19 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -33,27 +33,6 @@ extern "C" {
 
 /*======================================================================
 *
-*                    TecTCPServer parameters
-*
- *====================================================================*/
-
-typedef struct tagTecTCPServerParams TecTCPServerParams;
-typedef TecTCPServerParams* TecTCPServerParamsPtr;
-
-typedef struct tagTecTCPServerParams {
-    size_t worker_pool_size;  // [0] - single thread server.
-} TecTCPServerParams;
-
-#define TecTCPServerParams_ptr(ptr) ((TecTCPServerParamsPtr)(ptr))
-
-#define TecTCPServerParams_init(ptr) TecTCPServerParams_init_(TecTCPServerParams_ptr(ptr))
-TECC_API void TecTCPServerParams_init_(TecTCPServerParamsPtr);
-
-#define TecTCPServerParams_done(ptr) ((void)(ptr))
-#define TecTCPServerParams_done_(ptr) ((void)(ptr))
-
-/*======================================================================
-*
 *               TecTPCServer, inherited from TecService
 *
  *====================================================================*/
@@ -65,10 +44,22 @@ typedef TecThrPool* TecThrPoolPtr;
 typedef struct tagTecTCPServer TecTCPServer;
 typedef TecTCPServer* TecTCPServerPtr;
 
-// Multithreaded (if configured) TCP server. 368 bytes.
+// A handler for incoming connections.
+typedef int (*TecTCPClientFunc)(TecSocketPtr, void* arg);
+
+// Server special log statuses.
+enum {
+    TECC_LOG_SVR_CONNECTING = 29001,
+    TECC_LOG_SVR_CONN_OK,
+    TECC_LOG_SVR_CONN_FAILED,
+    TECC_LOG_SVR_SHUTDOWN
+};
+// Logging.
+typedef void (*TecTCPServerLogFunc)(int, TecSocketPtr, TecTCPServerPtr);
+
+// Multithreaded (if configured with thread pool) TCP server. 368 bytes.
 typedef struct tagTecTCPServer {
     TecService service;
-    TecTCPServerParamsPtr server_params;
     TecSocketParamsPtr socket_params;
     // Listening socket.
     TecSocket sock;
@@ -80,29 +71,31 @@ typedef struct tagTecTCPServer {
     TecBuffer buffer;          // Single-threaded server buffer.
     TecThrPoolPtr thread_pool; // NULL by default (single-threaded server).
     void (*dispatch_client)(TecSocketPtr, TecBuffer, TecTCPServerPtr);
-    void (*process_client)(TecSocketPtr);
+    // Logging
+    TecTCPServerLogFunc log;   // NULL, no logging.
+    // A handler for incoming connections.
+    TecTCPClientFunc client_proc;
 } TecTCPServer;
 
 /*======================================================================
 *
-*                       BSD-socket TecTCPServer API
+*                         TecTCPServer API
 *
  *====================================================================*/
 
 #define TecTCPServer_ptr(ptr) ((TecTCPServerPtr)(ptr))
 
-// Initialization.
-#define TecTCPServer_init(self, server_params, socket_params)\
-    TecTCPServer_init_(TecTCPServer_ptr(self),\
-                       TecTCPServerParams_ptr(server_params),\
-                       TecSocketParams_ptr(socket_params))
-
-TECC_API void TecTCPServer_init_(TecTCPServerPtr,
-                                 TecTCPServerParamsPtr,
-                                 TecSocketParamsPtr);
+// Initializes the server using the specified listening‑socket parameters.
+TECC_API void TecTCPServer_init(TecTCPServerPtr, TecSocketParamsPtr);
 
 // Destructor.
 #define TecTCPServer_done(self) TecService_done(TecService_ptr(self))
+
+// Sets a handler for incoming connections.
+TECC_API void TecTCPServer_set_client_proc(TecTCPServerPtr, TecTCPClientFunc);
+
+// Attaches a thread pool that handles incoming connections concurrently.
+TECC_API void TecTCPServer_use_thread_pool(TecTCPServerPtr, TecThrPoolPtr);
 
 // FOR CALLING FROM AN INHERITED OBJECT ONLY!
 TECC_API void TecTCPServer_done_(TecServicePtr);

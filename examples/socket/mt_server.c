@@ -1,12 +1,14 @@
-// Time-stamp: <Last changed 2026-05-11 00:59:14 by magnolia>
+// Time-stamp: <Last changed 2026-05-11 01:26:58 by magnolia>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 
 #include "tecc/tecc_def.h"    // IWYU pragma: keep
+#include "tecc/tecc_socket.h"
 #include "tecc/tecc_trace.h"  // IWYU pragma: keep
 #include "tecc/tecc_buffer.h"
+#include "tecc/tecc_thread_pool.h"
 #include "tecc/tecc_tcp_server.h"
 #include "tecc/tecc_service_worker.h"
 
@@ -60,13 +62,22 @@ int main(int argc, char* argv[]) {
     // Allocate incoming data buffer.
     TecBuffer_init(&data, 1024, 1024);
 
+
     TecSocketParams socket_params;
     TecSocketParams_init(&socket_params);
     socket_params.addr = kTecAnyAddr; // Accept connection from any IPv4 address.
     parse_args(argc, argv, &socket_params);
 
+    // Create a thread pool for handling incoming connections concurently.
+    TecThrPool thread_pool;
+    TecThrPool_init(&thread_pool, 8, socket_params.buffer_size,
+                    sizeof(TecSocket), 32);
+    TecThrPool_run(&thread_pool);
+
     TecTCPServer server;
     TecTCPServer_init(&server, &socket_params);
+    // Attach the thread pool.
+    TecTCPServer_use_thread_pool(&server, &thread_pool);
     // Incoming connection processor.
     TecTCPServer_set_client_proc(&server, process_str);
 
@@ -86,6 +97,7 @@ int main(int argc, char* argv[]) {
     // Clean up.
     TecSocketParams_done(&socket_params);
     TecTCPServer_done(&server);
+    TecThrPool_done(&thread_pool);
     TecDaemon_done(&service_worker);
     TecSignal_done(&sig_quit);
     TecBuffer_done(&data);
