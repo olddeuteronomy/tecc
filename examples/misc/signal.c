@@ -1,12 +1,13 @@
-// Time-stamp: <Last changed 2026-04-07 16:31:21 by magnolia>
+// Time-stamp: <Last changed 2026-05-13 01:45:28 by magnolia>
 
 #include <stdio.h>
 
+#include "tecc/tecc_time.h"
 #include "tecc/tecc_signal.h"
+#include "tecc/tecc_threads.h"
 
 
-int setter(void *arg)
-{
+TECC_THREAD_FUNC_RETVAL setter(void *arg) {
     TecSignalPtr sig = (TecSignal*)arg;
     tec_sleep_for(SECONDS(10));
     TecSignal_set(sig);
@@ -14,22 +15,20 @@ int setter(void *arg)
 }
 
 
-int main(void)
-{
+int main(void) {
     TecSignal sig;
     TecSignal_init(&sig);
-
-    thrd_t t;
-    thrd_create(&t, setter, &sig);
+    TecThread t;
+    TecThread_init(&t);
+    TecThread_create(&t, setter, &sig);
 
     if (TecSignal_wait_for(&sig, SECONDS(5))) {
         puts("Signal set.");
     } else {
         puts("Timeout!");
-        /* thrd_detach(t); */
     }
 
-    thrd_join(t, NULL);
+    TecThread_join(&t);
     TecSignal_done(&sig);
     return 0;
 }

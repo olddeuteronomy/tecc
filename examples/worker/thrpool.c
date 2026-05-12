@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-07 11:11:42 by magnolia>
+// Time-stamp: <Last changed 2026-05-13 02:30:13 by magnolia>
 
 #include "tecc/tecc_def.h"    // IWYU pragma: keep
 #include "tecc/tecc_trace.h"  // IWYU pragma: keep
@@ -25,7 +25,7 @@ TECC_unused void test_pool(void) {
                     TASK_ARENA);
     TecThrPool_run(&pool);
     for (size_t i = 0; i < 64; ++i) {
-        TecThrPool_enqueue(&pool, NULL, NULL);
+        TecThrPool_enqueue(&pool, NULL, NULL, NULL);
     }
     TecThrPool_done(&pool);
 }

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 14:41:30 by magnolia>
+// Time-stamp: <Last changed 2026-05-13 00:11:13 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -77,7 +77,7 @@ TECC_API bool TecService_init_(TecServicePtr);
 // Destructor.
 #define TecService_done(self) do {\
     TecServicePtr svc = TecService_ptr(self);\
-    if (svc->done) { svc->done(s); } } while (0)
+    if (svc->done) { svc->done(svc); } } while (0)
 
 // FOR CALLING FROM AN INHERITED OBJECT ONLY!
 TECC_API void TecService_done_(TecServicePtr);

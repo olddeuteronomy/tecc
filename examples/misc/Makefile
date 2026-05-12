@@ -1,24 +1,24 @@
-# Time-stamp: <Last changed 2026-04-13 11:06:10 by magnolia>
+# Time-stamp: <Last changed 2026-05-13 02:45:22 by magnolia>
 
 include ../../common.mk
 include ../examples.mk
 
-all: timepoint signal queue map buffer | $(OUTDIR)
+all: timepoint signal queue map buffer
 
-timepoint: timepoint.c
-	$(CC) $(CFLAGS) $(INCLUDES) $^ $(LIBS) -o $(OUTDIR)/$@
+timepoint: timepoint.c | $(OUTDIR)
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) -o $(OUTDIR)/$@
 
-signal: signal.c
-	$(CC) $(CFLAGS) $(INCLUDES) $^ $(LIBS) -o $(OUTDIR)/$@
+signal: signal.c | $(OUTDIR)
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) -o $(OUTDIR)/$@
 
-queue: queue.c
-	$(CC) $(CFLAGS) $(INCLUDES) $^ $(LIBS) -o $(OUTDIR)/$@
+queue: queue.c | $(OUTDIR)
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) -o $(OUTDIR)/$@
 
-map: map.c
-	$(CC) $(CFLAGS) $(INCLUDES) $^ $(LIBS) -o $(OUTDIR)/$@
+map: map.c | $(OUTDIR)
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) -o $(OUTDIR)/$@
 
-buffer: buffer.c
-	$(CC) $(CFLAGS) $(INCLUDES) $^ $(LIBS) -o $(OUTDIR)/$@
+buffer: buffer.c | $(OUTDIR)
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) -o $(OUTDIR)/$@
 
 $(OUTDIR):
 	$(MKDIR_P) $(OUTDIR)
