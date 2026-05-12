@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-05-09 13:15:36 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 14:44:15 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,12 +16,19 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
-
 #ifndef TECC_SERVICE_WORKER_H
 #define TECC_SERVICE_WORKER_H
 
+/*======================================================================
+*
+*    ServiceWorker combines a service and a worker,
+*    running the service in a dedicated thread.
+*
+ *====================================================================*/
+
 #include "tecc/tecc_def.h" // IWYU pragma: keep
 #include "tecc/tecc_threads.h"
+#include "tecc/tecc_signal.h"
 #include "tecc/tecc_worker.h"
 
 #ifdef __cplusplus
@@ -31,13 +38,6 @@ extern "C" {
 // Forward references.
 typedef struct tagTecService TecService;
 typedef TecService* TecServicePtr;
-
-/*======================================================================
-*
-*          ServiceWorker combines Service and Worker for
-*             running Service in a dedicated thread .
-*
- *====================================================================*/
 
 typedef struct tagTecServiceWorker TecServiceWorker;
 typedef TecServiceWorker* TecServiceWorkerPtr;

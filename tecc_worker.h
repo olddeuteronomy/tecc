@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-05-10 13:20:57 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 16:06:51 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,6 +19,13 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #ifndef TECC_WORKER_H
 #define TECC_WORKER_H
 
+/*======================================================================
+*
+*          Thread-safe synchronous message-processing daemon.
+*   Creates and starts a background thread that runs the message loop.
+*
+ *====================================================================*/
+
 #include "tecc/tecc_def.h"
 #include "tecc/tecc_daemon.h"
 #include "tecc/tecc_signal.h"
@@ -31,12 +38,6 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 extern "C" {
 #endif
 
-/*======================================================================
-*
-*          Thread-safe synchronous message-processing daemon.
-*   Creates and starts a background thread that runs the message loop.
-*
- *====================================================================*/
 
 typedef struct tagTecWorker TecWorker;
 typedef TecWorker* TecWorkerPtr;
@@ -81,6 +82,7 @@ typedef struct tagTecWorker {
 *                         TecWorker API
 *
  *====================================================================*/
+
 #define TecWorker_ptr(w) ((TecWorkerPtr)(w))
 
 // Initializes the worker. Use hash_table_size=0 for the default map size (117).

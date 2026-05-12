@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-04-17 13:50:02 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 12:50:07 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ static TecMapNode* find_node(TecMapPtr map, const char* key, size_t ndx) {
 
 TECC_IMPL bool TecMap_init(TecMapPtr map, size_t size) {
     if (size == 0) {
-        size = TECC_DEFAULT_MAP_SIZE;
+        size = TECC_MAP_DEFAULT_SIZE;
     }
     map->nodes = TECC_CALLOC(size, sizeof(TecMapNode*));
     if (map->nodes == NULL) {

@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-05-07 10:23:41 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 13:16:42 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
+#ifndef TECC_ARENA_H
+#define TECC_ARENA_H
+
 /*======================================================================
 *
 *    TecArena - a fixed‑capacity arena that allocates objects of
@@ -24,20 +27,16 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 *
  *====================================================================*/
 
-#ifndef TECC_ARENA_H
-#define TECC_ARENA_H
-
 #include <stddef.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 
 #include "tecc/tecc_def.h"
-#include "tecc/tecc_signal.h"
+#include "tecc/tecc_threads.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 #define TECC_ARENA_ALLOCATED 0x01
 

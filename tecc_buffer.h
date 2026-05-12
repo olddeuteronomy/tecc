@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-05-10 14:00:57 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 14:23:54 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,6 +18,13 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ----------------------------------------------------------------------*/
 #ifndef TECC_BUFFER_H
 #define TECC_BUFFER_H
+
+/*======================================================================
+*       An expandable byte buffer, mimicking file operations.
+*       Provides a growable in-memory buffer with an API similar to
+*       stdio FILE streams (read, write, seek, tell, etc.).
+*       The internal storage is automatically expanded as needed.
+ *====================================================================*/
 
 #include <stddef.h>
 
@@ -39,14 +46,6 @@ enum {
     kTecSeekSet,
     kTecSeekEnd
 };
-
-/*======================================================================
-*          An expandable byte buffer, mimicking file operations.
-*
-*       Provides a growable in-memory buffer with an API similar to
-*           stdio FILE streams (read, write, seek, tell, etc.).
-*       The internal storage is automatically expanded as needed.
- *====================================================================*/
 
 typedef struct tagTecBuffer TecBuffer;
 typedef TecBuffer* TecBufferPtr;
@@ -132,7 +131,7 @@ TECC_API TecBuffer TecBuffer_json(TecBufferPtr buf, const char* name, size_t max
 // Uses `len` if `len` != 0, otherwise uses `buf->size` - `start`.
 TECC_API TecBuffer TecBuffer_as_hex(TecBufferPtr src, long start, size_t len);
 
-// Returns a formatted hex dump of the `src` buffer as a table.
+// Returns the formatted hex dump of the `src` buffer as a table.
 /*
  offset |00  02  04  06  08  10  12  14  16  18  20  22  24  26  28  30  |
 ========|++--++--++--++--++--++--++--++--++--++--++--++--++--++--++--++--|

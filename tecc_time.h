@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-04-17 13:50:07 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 16:07:00 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -22,13 +22,13 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
 // gmtime_r trick
 #if defined(__APPLE__)
-  #define _DARWIN_C_SOURCE
+#  define _DARWIN_C_SOURCE
 #elif defined(__unix) || defined(__linux)
-  #define _POSIX_C_SOURCE 200809L
+#  define _POSIX_C_SOURCE 200809L
 #elif defined(_WIN64) || defined(_WIN32)
-  #define USE_GMTIME_S 1
+#  define USE_GMTIME_S 1
 #else
-  #error "Unknown platform"
+#  error "Unknown platform"
 #endif
 
 #include <time.h>
@@ -39,7 +39,6 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 // Nanoseconds since epoch (1970.01.01:00:00Z).
 typedef int64_t TecTimePoint;

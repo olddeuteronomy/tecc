@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-04-17 13:50:03 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 16:05:30 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -28,9 +28,10 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
   #error "Unknown platform"
 #endif
 
-#include <threads.h>
+#include <time.h>
 
-#include "tecc/tecc_def.h"
+#include "tecc/tecc_def.h" // IWYU pragma: keep
+#include <tecc/tecc_threads.h>
 #include "tecc/tecc_time.h"
 
 
@@ -72,5 +73,9 @@ TECC_IMPL TecTimePoint tec_tp_now(void) {
 TECC_IMPL void tec_sleep_for(TecTimePoint dur) {
     struct timespec ts;
     tec_tp_to_ts(dur, &ts);
+#ifdef TECC_PTHREAD
+    nanosleep(&ts, NULL);
+#else
     thrd_sleep(&ts, NULL);
+#endif
 }

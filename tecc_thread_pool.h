@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-05-10 12:37:42 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 15:50:03 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
+#ifndef TECC_THREAD_POOL_H
+#define TECC_THREAD_POOL_H
+
 /*======================================================================
 *
 * A simple round‑robin thread pool. Tasks consist of a function,
@@ -25,8 +28,6 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 * no per‑task heap allocation.
 *
  *====================================================================*/
-#ifndef TECC_THREAD_POOL_H
-#define TECC_THREAD_POOL_H
 
 #include <stddef.h>
 #include <stdatomic.h>
@@ -38,7 +39,6 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 // Forward references.
 typedef struct tagTecTaskNode TecTaskNode;
@@ -53,18 +53,18 @@ typedef struct tagTecThrPool {
     TecTaskNodePtr nodes;         // Internal.
     atomic_int next_thread_index; // Round-robin thread index selection.
     size_t buffer_size;           // One buffer per task, may be 0.
-    char* buffer_arena;           // NULL if `buffer_size` is 0.
+    char* buffer_arena;           // Preallocated buffer arena; NULL if `buffer_size` is 0.
     size_t payload_size;          // Size of payload per task, may be 0.
-    char* payload_arena;          // Preallocated payload arena if any.
+    char* payload_arena;          // Preallocated payload arena; NULL if `payload_size` is 0.
 } TecThrPool;
 typedef TecThrPool* TecThrPoolPtr;
 
 // A task to be enqueued to the pool for execution. 48 bytes.
 typedef struct tagTecTask {
-    TecArenaElem hdr;        // Can be allocated at the arena.
-    char* buffer;            // Task buffer; may be NULL.
+    TecArenaElem hdr;        // Indicates that this object may be allocated at the arena.
+    char* buffer;            // Task buffer assigned by ThrPool; may be NULL.
     size_t buffer_size;      // Size of per-thread buffer.
-    void* payload;           // Preallocated payload or NULL.
+    void* payload;           // Preallocated payload assigned by ThrPool; may be NULL.
     void* args;              // Additional arguments or NULL.
     TecTaskFunc task_func;   // To be executed by a thread from the pool.
 } TecTask;
@@ -82,10 +82,12 @@ TECC_API void TecThrPool_init(TecThrPoolPtr self,
                               size_t payload_size,
                               size_t task_arena_nelems);
 
-TECC_API bool TecThrPool_run(TecThrPoolPtr);
-
 TECC_API void TecThrPool_done(TecThrPoolPtr);
 
+//
+TECC_API bool TecThrPool_run(TecThrPoolPtr);
+
+// Creates a task and enqueues it to the pool for execution.
 TECC_API void TecThrPool_enqueue(TecThrPoolPtr self,
                                  TecTaskFunc task_func,
                                  void* payload, void* args);

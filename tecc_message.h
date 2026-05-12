@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-04-25 12:22:28 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 14:26:44 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
-
 #ifndef TECC_MESSAGE_H
 #define TECC_MESSAGE_H
 
@@ -30,15 +29,16 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 extern "C" {
 #endif
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *                        Message object
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 typedef struct tagTecMsg TecMsg;
 typedef TecMsg* TecMsgPtr;
 
+// 16 bytes.
 typedef struct tagTecMsg {
     const char* tag;         // Message type as string.
     void (*done)(TecMsgPtr); // Destructor (NULL by default).
@@ -47,11 +47,11 @@ typedef struct tagTecMsg {
 // Message callback function.
 typedef void (*TecCallbackFunc)(TecMsgPtr, void*);
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
 *                          Message API
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 #define TecMsg_ptr(ptr) ((TecMsgPtr)(ptr))
 
@@ -64,12 +64,12 @@ typedef void (*TecCallbackFunc)(TecMsgPtr, void*);
 // Check message type.
 #define TecMsg_typeof(type, msg) (strcmp(TecMsg_type(type), TecMsg_tag(msg)) == 0)
 
-// Initialize a message by setting its type (tag).
+// Initializes a message by setting its type (tag).
 #define TecMsg_init(type, msg)\
     (msg)->hdr.tag = TecMsg_type(type);\
     (msg)->hdr.done = NULL
 
-// Allocate a new message and set its type.
+// Allocates a new message and set its type.
 #define TecMsg_new(type, ptr)\
     ptr = (type *)TECC_CALLOC(1, sizeof(type));\
     TecMsg_init(type, ptr)

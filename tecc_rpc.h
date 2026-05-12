@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-04-30 15:05:13 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 14:38:00 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -37,15 +37,16 @@ typedef TecMsgPtr TecRequestPtr;
 typedef TecMsg TecReply;
 typedef TecMsgPtr TecReplyPtr;
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*======================================================================
 *
-*          RPC object holding both Request and Reply messages
+*     RPC object (message) holding both request and reply messages.
 *
- *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+ *====================================================================*/
 
 // Should return 0 on success, or domain-specific error code.
 typedef int (*TecRPCHandlerFunc)(TecRequestPtr, TecReplyPtr, void*);
 
+// 48 bytes.
 TECC_DEF_MESSAGE(TecRPC)
     TecRequestPtr request;
     TecReplyPtr reply;
@@ -55,7 +56,6 @@ TECC_END_MESSAGE(TecRPC)
 
 TECC_API void TecRPC_init(TecRPCPtr, TecRequestPtr, TecReplyPtr, TecSignalPtr);
 TECC_API void TecRPC_done(TecRPCPtr);
-
 
 #ifdef __cplusplus
 }

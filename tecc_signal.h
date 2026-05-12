@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-05-09 13:07:02 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 14:57:39 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,6 +19,13 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #ifndef TECC_SIGNAL_H
 #define TECC_SIGNAL_H
 
+/*======================================================================
+*
+*     A thread‑safe signal object that blocks callers
+*     until its internal atomic_int becomes 1.
+*
+ *====================================================================*/
+
 #include <stdbool.h>
 #include <stdatomic.h>
 
@@ -26,16 +33,9 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #include "tecc/tecc_time.h"
 #include "tecc/tecc_threads.h"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/*======================================================================
-*
-*                     TecSignal object
-*
- *====================================================================*/
 
 // 112 bytes.
 typedef struct tagTecSignal {
@@ -44,7 +44,6 @@ typedef struct tagTecSignal {
     TecCV cnd;
 } TecSignal;
 typedef TecSignal* TecSignalPtr;
-
 
 // Initializes the signal.
 TECC_API bool TecSignal_init(TecSignalPtr);

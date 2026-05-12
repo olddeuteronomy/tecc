@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-05-07 03:43:35 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 14:33:47 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,26 +19,27 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #ifndef TECC_QUEUE_H
 #define TECC_QUEUE_H
 
+/*======================================================================
+*
+*  A thread‑safe FIFO queue that stores opaque `void*` objects, providing
+*  concurrent enqueue (push) and blocking dequeue (pop) operations.
+*
+ *====================================================================*/
+
 #include <stdbool.h>
 #include <threads.h>
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
-#include "tecc/tecc_signal.h"
+#include "tecc/tecc_threads.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*======================================================================
-*
-*                      Thread-safe queue
-*
- *====================================================================*/
-
 typedef struct tagTecQueueNode TecQueueNode;
 typedef TecQueueNode* TecQueueNodePtr;
 
-// 128 bytes.
+// 120 bytes.
 typedef struct tagTecQueue {
     TecQueueNodePtr head;
     TecQueueNodePtr tail;
@@ -47,19 +48,17 @@ typedef struct tagTecQueue {
 } TecQueue;
 typedef TecQueue* TecQueuePtr;
 
-
-// Initialize a queue.
+// Initializes the queue.
 TECC_API bool TecQueue_init(TecQueuePtr q);
 
 // Destructor.
 TECC_API void TecQueue_done(TecQueuePtr q);
 
-// Enqueue an object.
+// Enqueues an object.
 TECC_API void TecQueue_push(TecQueuePtr q, void* obj);
 
-// Dequeue an object.
+// Dequeues an object; waits until one is available.
 TECC_API void* TecQueue_pop(TecQueuePtr q);
-
 
 #ifdef __cplusplus
 }

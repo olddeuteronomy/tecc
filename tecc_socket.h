@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-05-05 01:26:36 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 15:05:33 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ extern const char* const kTecLocalHost;
 extern const char* const kTecAnyAddrIP6;
 // Client: IPv6 loopback address ["::1"].
 extern const char* const kTecLocalAddrIP6;
-// Default port number used for testing and examples [4321].
+// Default port number used for testing and in examples [4321].
 extern const int kTecDefaultPort;
 // Default address family: AF_UNSPEC allows both IPv4 and IPv6 [AF_UNSPEC].
 extern const int kTecDefaultFamily;
@@ -97,7 +97,7 @@ typedef struct tagTecSocketParams {
     int socktype;           // Socket type [SOCK_STREAM].
     int protocol;           // Protocol (usually 0, any appropriate).
     int flags;              // AI_PASSIVE for servers, 0 for clients.
-    size_t buffer_size;     // Size of internal buffer for send/recv operations.
+    size_t buffer_size;     // Size of internal buffer for write/read operations.
     // Server parameters.
     int queue_size;         // Maximum backlog for `listen()` [4096].
     int opt_reuse_addr;     // Socket option SO_REUSEADDR [0]
@@ -165,7 +165,7 @@ TECC_API int TecSocket_open(TecSocketPtr);
 // Sets socket options.
 TECC_API int TecSocket_set_options(TecSocketPtr);
 
-// Client: connect to the host.
+// Client: connecting to the host.
 // Currently, only SOCK_STREAM sockets (TCP) are supported.
 TECC_API int TecSocket_connect(TecSocketPtr);
 
@@ -173,14 +173,14 @@ TECC_API int TecSocket_connect(TecSocketPtr);
 
 #define TecSocket_is_valid(ptr) ((TecSocket_ptr(ptr)->fd) != -1)
 
-// Server: bind a name to the listening socket.
+// Server: binding a name to the listening socket.
 TECC_API int TecSocket_bind(TecSocketPtr);
 
-// Server: listen for connections on the socket.
+// Server: listening for connections on the socket.
 TECC_API int TecSocket_listen(TecSocketPtr);
 
-// Server: accept an incoming connection (blocking).
-// Returns a new client socket, possible with fd=-1.
+// Server: accepting an incoming connection (blocking).
+// Returns the new client socket, possible with fd=-1.
 TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock);
 
 // Closes the socket.
@@ -193,8 +193,7 @@ TECC_API int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst);
 // Returns 0 on success or an error code from <errno.h> on failure.
 TECC_API int TecSocket_write(TecSocketPtr sock, TecBufferPtr src);
 
-// Writes the null-terminated string to the SOCK_STREAM socket.
-// Returns 0 on success or an error code from <errno.h> on failure.
+// Writes a null-terminated string to the SOCK_STREAM socket.
 TECC_API int TecSocket_write_str(TecSocketPtr sock, char* s);
 
 #ifdef __cplusplus

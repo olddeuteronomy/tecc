@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-05-09 11:00:27 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 14:41:30 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,6 +19,12 @@ Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #ifndef TECC_SERVICE_H
 #define TECC_SERVICE_H
 
+/*======================================================================
+*
+*   A generic long-lived service with `start`/`shutdown` semantics.
+*
+ *====================================================================*/
+
 #include <stdbool.h>
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
@@ -31,12 +37,6 @@ extern "C" {
 // Forward references.
 typedef struct tagTecDaemon TecDaemon;
 typedef TecDaemon* TecDaemonPtr;
-
-/*======================================================================
-*
-*   A generic long-lived service with `start`/`shutdown` semantics.
-*
- *====================================================================*/
 
 typedef struct tagTecService TecService;
 typedef TecService* TecServicePtr;
@@ -76,12 +76,11 @@ TECC_API bool TecService_init_(TecServicePtr);
 
 // Destructor.
 #define TecService_done(self) do {\
-    TecServicePtr s = TecService_ptr(self);\
-    if (s->done) { s->done(s); } } while (0)
+    TecServicePtr svc = TecService_ptr(self);\
+    if (svc->done) { svc->done(s); } } while (0)
 
 // FOR CALLING FROM AN INHERITED OBJECT ONLY!
 TECC_API void TecService_done_(TecServicePtr);
-
 
 #ifdef __cplusplus
 }

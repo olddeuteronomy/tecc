@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-05-09 11:37:11 by magnolia>
+// Time-stamp: <Last changed 2026-05-12 12:12:44 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
-Copyright (c) 2020-2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
+Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
