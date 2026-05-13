@@ -1,12 +1,17 @@
-// Time-stamp: <Last changed 2026-05-11 01:26:58 by magnolia>
+// Time-stamp: <Last changed 2026-05-13 10:41:03 by magnolia>
+/*======================================================================
+*
+* Construct and run multi-threaded TCP server with arena allocator.
+*
+ *====================================================================*/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 
 #include "tecc/tecc_def.h"    // IWYU pragma: keep
-#include "tecc/tecc_socket.h"
 #include "tecc/tecc_trace.h"  // IWYU pragma: keep
+#include "tecc/tecc_socket.h"
 #include "tecc/tecc_buffer.h"
 #include "tecc/tecc_thread_pool.h"
 #include "tecc/tecc_tcp_server.h"
@@ -34,18 +39,15 @@ static void parse_args(int argc, char* argv[], TecSocketParamsPtr params) {
 
 
 // Process client connection.
-
-static TecBuffer data;
-
-static int process_str(TecSocketPtr sock, void* arg) {
+static int process_data(TecSocketPtr sock, void* arg) {
     (void)arg;
     TECC_TRACE_ENTER("process_str");
-    TECC_TRACE("Socket: FD=%d, data=%p, bufsize=%zu.\n", sock->fd, sock->buf.data, sock->buf.size);
-    TecBuffer_rewind(&data);
+    TecBuffer data = TecBuffer_create(1024);
     int err = TecSocket_read(sock, &data);
     if (!err) {
         puts(data.data);
     }
+    TecBuffer_done(&data);
     TECC_TRACE_EXIT();
     return err;
 }
@@ -59,35 +61,39 @@ int main(int argc, char* argv[]) {
     TecSignal_init(&sig_quit);
     signal(SIGINT, handle_sigint);
 
-    // Allocate incoming data buffer.
-    TecBuffer_init(&data, 1024, 1024);
-
-
+    // Define socket parameters.
     TecSocketParams socket_params;
     TecSocketParams_init(&socket_params);
-    socket_params.addr = kTecAnyAddr; // Accept connection from any IPv4 address.
+    // Accepting connections from any IPv4 or IPv6 addresses.
+    socket_params.addr = kTecAnyAddrIP6;
     parse_args(argc, argv, &socket_params);
 
-    // Create a thread pool for handling incoming connections concurently.
+    // Create a thread pool for handling incoming connections concurently:
+    // 8 threads,
+    // 8 arena-preallocated buffers,
+    // Payload: TecSocket allocated using internal arena when possible,
+    // 32 arena-preallocated socket slots per thread.
     TecThrPool thread_pool;
     TecThrPool_init(&thread_pool, 8, socket_params.buffer_size,
                     sizeof(TecSocket), 32);
     TecThrPool_run(&thread_pool);
 
+    // Initialize the server.
     TecTCPServer server;
     TecTCPServer_init(&server, &socket_params);
     // Attach the thread pool.
     TecTCPServer_use_thread_pool(&server, &thread_pool);
     // Incoming connection processor.
-    TecTCPServer_set_client_proc(&server, process_str);
+    TecTCPServer_set_client_proc(&server, process_data);
 
+    // Initialize the service worker that runs the server in the dedicated thread.
     TecServiceWorker service_worker;
     TecServiceWorker_init(&service_worker, &server, 1);
 
     // Start the server via ServiceWorker using Daemon API.
     int error = TecDaemon_run(&service_worker);
     if (!error) {
-        // Wait until quit signalled...
+        // Wait until `quit` signalled...
         TecSignal_wait(&sig_quit);
         // ... then terminate the service worker.
         TecDaemon_terminate(&service_worker);
@@ -100,7 +106,6 @@ int main(int argc, char* argv[]) {
     TecThrPool_done(&thread_pool);
     TecDaemon_done(&service_worker);
     TecSignal_done(&sig_quit);
-    TecBuffer_done(&data);
 
     TECC_TRACE_EXIT();
     TECC_TRACE_DONE();

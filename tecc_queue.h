@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 14:33:47 by magnolia>
+// Time-stamp: <Last changed 2026-05-13 12:21:08 by mac>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -27,7 +27,6 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
  *====================================================================*/
 
 #include <stdbool.h>
-#include <threads.h>
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
 #include "tecc/tecc_threads.h"

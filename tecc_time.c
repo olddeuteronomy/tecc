@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 16:05:30 by magnolia>
+// Time-stamp: <Last changed 2026-05-13 13:26:19 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -62,11 +62,15 @@ TECC_IMPL void tec_tp_to_tm(TecTimePoint tp, struct tm* tm) {
 
 // Nanoseconds since UNIX epoch.
 TECC_IMPL TecTimePoint tec_tp_now(void) {
+#ifdef __APPLE__
+    return clock_gettime_nsec_np(CLOCK_REALTIME);
+#else
     struct timespec now;
     if (timespec_get(&now, TIME_UTC) == 0) {
         return 0LL;
     }
     return tec_ts_to_tp(&now);
+#endif
 }
 
 // Sleep the current thread for the given interval.

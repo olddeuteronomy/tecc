@@ -1,9 +1,10 @@
-# Time-stamp: <Last changed 2026-05-13 02:24:05 by magnolia>
+# Time-stamp: <Last changed 2026-05-13 12:04:40 by magnolia>
 
 include ../../common.mk
 include ../examples.mk
 
-all: mt_server server client socket ssocket | $(OUTDIR)
+
+all: mt_server server client socket ssocket
 
 client: client.c | $(OUTDIR)
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) -o $(OUTDIR)/$@

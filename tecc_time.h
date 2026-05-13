@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 16:07:00 by magnolia>
+// Time-stamp: <Last changed 2026-05-13 13:24:21 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -41,7 +41,7 @@ extern "C" {
 #endif
 
 // Nanoseconds since epoch (1970.01.01:00:00Z).
-typedef int64_t TecTimePoint;
+typedef long long TecTimePoint;
 
 // Converting to nanoseconds.
 #define MICROSECS(us) ((TecTimePoint)(ms  * 1000LL))

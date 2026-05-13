@@ -1,4 +1,4 @@
-# Time-stamp: <Last changed 2026-05-13 02:22:42 by magnolia>
+# Time-stamp: <Last changed 2026-05-13 13:19:24 by magnolia>
 
 TECCDIR := ../..
 BUILDDIR:= $(TECCDIR)/build
@@ -15,5 +15,5 @@ LIBS := -L$(LIBDIR) -l$(LIBTECC)
 SRC := $(wildcard *.c)
 OBJ := $(patsubst %.c, $(OUTDIR)/%.o, $(SRC))
 
-# Auto‑include dependency files
+# # Auto‑include dependency files
 -include $(OBJ:.o=.d)

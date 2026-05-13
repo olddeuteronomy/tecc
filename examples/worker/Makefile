@@ -1,9 +1,9 @@
-# Time-stamp: <Last changed 2026-05-13 02:28:44 by magnolia>
+# Time-stamp: <Last changed 2026-05-13 13:19:58 by magnolia>
 
 include ../../common.mk
 include ../examples.mk
 
-all: worker request thrpool | $(OUTDIR)
+all: worker request thrpool
 
 worker: worker.c | $(OUTDIR)
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) -o $(OUTDIR)/$@

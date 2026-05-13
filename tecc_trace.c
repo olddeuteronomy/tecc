@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 12:13:11 by magnolia>
+// Time-stamp: <Last changed 2026-05-13 12:40:26 by mac>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -51,7 +51,7 @@ TECC_IMPL void tec_trace_done() {
 TECC_IMPL void tec_trace_enter(TecTracerPtr tr) {
     if (guard_.result) return;
     TecMutex_lock(&guard_);
-    printf("%*s+ %s entered @TID=%08lx.\n", level, zs, tr->name, GET_THREAD_ID());
+    printf("%*s+ %s entered @TID=%p.\n", level, zs, tr->name, (void*)GET_THREAD_ID());
     level += shift;
     TecMutex_unlock(&guard_);
 }
@@ -63,7 +63,7 @@ TECC_IMPL void tec_trace_exit(TecTracerPtr tr) {
     TecTimePoint diff_time_ns = tec_tp_now() - tr->start_time;
     TecTimePoint diff_time_ms = diff_time_ns / 1000000; // Milliseconds
     TecTimePoint diff_time_us = diff_time_ns / 1000;    // Microseconds
-    printf("%*s- %s completed in %ldms/%ldus.\n",  level, zs, tr->name, diff_time_ms, diff_time_us);
+    printf("%*s- %s completed in %lldms/%lldus.\n",  level, zs, tr->name, diff_time_ms, diff_time_us);
     TecMutex_unlock(&guard_);
 }
 

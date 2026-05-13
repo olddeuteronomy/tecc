@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 12:13:11 by magnolia>
+// Time-stamp: <Last changed 2026-05-13 12:27:59 by mac>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -25,6 +25,13 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #  ifndef _POSIX_C_SOURCE
      // This line fixes the "storage size of 'hints' isn't known" issue.
 #    define _POSIX_C_SOURCE 200809L
+#  endif
+#endif
+
+#ifdef __APPLE__
+#  ifndef _DARWIN_C_SOURCE
+     // For SO_REUSEPORT
+#    define _DARWIN_C_SOURCE
 #  endif
 #endif
 
