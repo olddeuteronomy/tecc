@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-15 10:58:45 by magnolia>
+// Time-stamp: <Last changed 2026-05-15 11:17:40 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -16,7 +16,6 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
-#include <asm-generic/errno.h>
 #ifdef __gnu_linux__
 // This lines fixes the issue with SO_REUSEPORT on Linux.
 #  define _GNU_SOURCE
