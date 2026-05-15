@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 12:13:11 by magnolia>
+// Time-stamp: <Last changed 2026-05-15 11:02:10 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -18,6 +18,7 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ----------------------------------------------------------------------*/
 #include <stdatomic.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #include "tecc/tecc_def.h"    // IWYU pragma: keep
 #include "tecc/tecc_trace.h"  // IWYU pragma: keep
@@ -131,8 +132,8 @@ static void start_(TecServicePtr svc, TecSignalPtr sig_started, int* error) {
 static void shutdown_(TecServicePtr svc, TecSignalPtr sig_stopped) {
     TecTCPServerPtr self = TecTCPServer_ptr(svc);
     // Close listening socket.
-    TecSocket_close(&self->sock);
     atomic_store(&self->running, false);
+    TecSocket_close(&self->sock);
     // Wait until polling has stopped.
     TecSignal_wait(&self->sig_polling_stopped);
     TecSignal_set(sig_stopped);

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-13 12:27:59 by mac>
+// Time-stamp: <Last changed 2026-05-15 10:58:45 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -16,6 +16,7 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
+#include <asm-generic/errno.h>
 #ifdef __gnu_linux__
 // This lines fixes the issue with SO_REUSEPORT on Linux.
 #  define _GNU_SOURCE
@@ -325,7 +326,7 @@ TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock) {
     // Check result.
     if (cli.fd == -1) {
         err = errno;
-        if (err == EINVAL || err == EINTR || err == EBADF) {
+        if (err == EINVAL || err == EINTR || err == EBADF || err == EBADR) {
             TECC_TRACE("Polling interrupted by signal %d.\n", err);
         }
         else {
