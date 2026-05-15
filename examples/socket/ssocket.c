@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-05-05 02:39:05 by magnolia>
+// Time-stamp: <Last changed 2026-05-15 09:57:28 by magnolia>
 /*======================================================================
 *
-*                      Testing TecSocket server.
+*  A simple single-threaded TCP server using the "pure" TecSocket API.
 *
  *====================================================================*/
 #include <stdbool.h>
@@ -15,12 +15,15 @@
 #include "tecc/tecc_trace.h"
 
 
-static atomic_bool running = true;
+TecSocket* listening_socket = NULL;
 
 void handle_sigint(int sig) {
     (void)sig;
-    atomic_store(&running, false);
+    if (listening_socket) {
+        TecSocket_close(listening_socket);
+    }
 }
+
 
 int run_server(TecSocketPtr sock) {
     int err = TecSocket_open(sock);
@@ -43,8 +46,11 @@ int run_server(TecSocketPtr sock) {
     TecBuffer str;
     TecBuffer_init(&str, 80);
 
-    // The simple polling incoming connections.
-    while (atomic_load(&running)) {
+    // Listening socket.
+    listening_socket = sock;
+
+    // Simple polling for incoming connections.
+    while (true) {
         TecSocket cli = TecSocket_accept(sock);
         if (TecSocket_is_valid(&cli)) {
             TecBuffer_rewind(&str); // Reuse the incoming buffer.
@@ -52,6 +58,9 @@ int run_server(TecSocketPtr sock) {
             puts(TecBuffer_data(&str));
             TecSocket_close(&cli);
             TecSocket_done(&cli);
+        }
+        else {
+            break;
         }
     }
 
@@ -82,7 +91,7 @@ int main(int argc, char* argv[]) {
     TecSocketParams params;
     TecSocketParams_init(&params);
     parse_args(argc, argv, &params);
-    /* params.opt_reuse_addr = 1; */
+    // Listening socket.
     TecSocket sock;
     TecSocket_init_server(&sock, &params);
 
