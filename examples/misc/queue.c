@@ -1,9 +1,10 @@
-// Time-stamp: <Last changed 2026-04-07 16:29:35 by magnolia>
+// Time-stamp: <Last changed 2026-05-15 12:00:11 by mac>
 
 #include <stdio.h>
 
 #include "tecc/tecc_time.h"
 #include "tecc/tecc_message.h"
+#include "tecc/tecc_threads.h"
 #include "tecc/tecc_queue.h"
 
 
@@ -18,7 +19,7 @@ TECC_DEF_MESSAGE(MsgStr80)
 TECC_END_MESSAGE(MsgStr80)
 
 
-int test1(void* arg) {
+TECC_THREAD_FUNC_RETVAL test1(void* arg) {
     TecQueuePtr q = (TecQueuePtr)arg;
     int counter = 0;
     while (true) {
@@ -49,8 +50,9 @@ int main(void) {
     TecQueue q;
     TecQueue_init(&q);
 
-    thrd_t t1;
-    thrd_create(&t1, test1, &q);
+    TecThread t1;
+    TecThread_init(&t1);
+    TecThread_create(&t1, test1, &q);
 
     for (int i = 0; i < 10; ++i) {
         // MsgPoint
@@ -67,7 +69,7 @@ int main(void) {
     }
     TecQueue_push(&q, NULL);
 
-    thrd_join(t1, NULL);
+    TecThread_join(&t1);
     TecQueue_done(&q);
     return 0;
 }

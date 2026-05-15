@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-15 11:17:40 by magnolia>
+// Time-stamp: <Last changed 2026-05-15 12:49:24 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -33,6 +33,11 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
      // For SO_REUSEPORT
 #    define _DARWIN_C_SOURCE
 #  endif
+#endif
+
+// Remap Linux-specific error code, which is not defined on BSD-derived systems.
+#ifndef EBADR
+#  define EBADR EINVAL
 #endif
 
 #include <unistd.h>
@@ -325,7 +330,7 @@ TECC_IMPL TecSocket TecSocket_accept(TecSocketPtr sock) {
     // Check result.
     if (cli.fd == -1) {
         err = errno;
-        if (err == EINVAL || err == EINTR || err == EBADF || err == EBADR) {
+        if (err == EINVAL || err == EINTR || err == EBADF || err == ECONNABORTED) {
             TECC_TRACE("Polling interrupted by signal %d.\n", err);
         }
         else {

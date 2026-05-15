@@ -5,3 +5,6 @@ build/
 
 # MacOS Cache
 .DS_Store
+
+# Development
+README.md

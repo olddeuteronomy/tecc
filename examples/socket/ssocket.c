@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-15 09:57:28 by magnolia>
+// Time-stamp: <Last changed 2026-05-15 12:19:22 by mac>
 /*======================================================================
 *
 *  A simple single-threaded TCP server using the "pure" TecSocket API.
@@ -15,10 +15,12 @@
 #include "tecc/tecc_trace.h"
 
 
+volatile atomic_bool running = true;
 TecSocket* listening_socket = NULL;
 
 void handle_sigint(int sig) {
     (void)sig;
+    atomic_store(&running, false);
     if (listening_socket) {
         TecSocket_close(listening_socket);
     }
@@ -50,7 +52,7 @@ int run_server(TecSocketPtr sock) {
     listening_socket = sock;
 
     // Simple polling for incoming connections.
-    while (true) {
+    while (atomic_load(&running)) {
         TecSocket cli = TecSocket_accept(sock);
         if (TecSocket_is_valid(&cli)) {
             TecBuffer_rewind(&str); // Reuse the incoming buffer.
@@ -58,9 +60,6 @@ int run_server(TecSocketPtr sock) {
             puts(TecBuffer_data(&str));
             TecSocket_close(&cli);
             TecSocket_done(&cli);
-        }
-        else {
-            break;
         }
     }
 

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-04-13 11:23:06 by magnolia>
+// Time-stamp: <Last changed 2026-05-15 12:00:48 by mac>
 
 #include <stdio.h>
 
@@ -8,7 +8,7 @@
 void print_timepoint(TecTimePoint tp) {
     struct tm t;
     tec_tp_to_tm(tp, &t);
-    printf("%ld = ", tp);
+    printf("%lld = ", tp);
     char buf[80];
     strftime(buf, sizeof(buf), "%FT%TZ", &t);
     puts(buf);
