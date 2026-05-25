@@ -1,15 +1,13 @@
-// Time-stamp: <Last changed 2026-05-13 02:30:13 by magnolia>
+// Time-stamp: <Last changed 2026-05-25 14:43:07 by magnolia>
+/*======================================================================
+*
+*                      TectThrPool test.
+*
+ *====================================================================*/
 
 #include "tecc/tecc_def.h"    // IWYU pragma: keep
 #include "tecc/tecc_trace.h"  // IWYU pragma: keep
 #include "tecc/tecc_thread_pool.h"
-
-
-/*======================================================================
-*
-*                            TEST
-*
- *====================================================================*/
 
 #define NTHREADS 8
 #define BUFFER_SIZE 1024

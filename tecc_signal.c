@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-13 12:21:50 by mac>
+// Time-stamp: <Last changed 2026-05-25 12:28:20 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -86,16 +86,16 @@ TECC_IMPL int TecSignal_wait_for(TecSignal * sig, TecTimePoint timeout) {
     if (atomic_load_explicit(&sig->value, memory_order_acquire) == 1) {
         return 0;
     }
-    // Computes absolute deadline in nanosec.
+    // Compute absolute deadline in nanosec.
     TecTimePoint deadline = tec_tp_now();
     if (deadline == 0) {
         return EINVAL;
     }
     deadline += timeout;
-    // Converts to time spec
+    // Convert to time spec
     struct timespec ts;
     tec_tp_to_ts(deadline, &ts);
-    // Locks and waits.
+    // Lock and wait.
     int err = TecMutex_lock(&sig->mtx);
     if (err) {
         TecMutex_unlock(&sig->mtx);
@@ -103,9 +103,6 @@ TECC_IMPL int TecSignal_wait_for(TecSignal * sig, TecTimePoint timeout) {
     }
     while (atomic_load_explicit(&sig->value, memory_order_acquire) != 1) {
         int cnd_err = TecCV_timedwait(&sig->cnd, &sig->mtx, &ts);
-        /* if (atomic_load_explicit(&sig->value, memory_order_acquire) == 1) { */
-        /*     break; */
-        /* } */
         if (cnd_err != 0) {
             err = cnd_err;
             break;

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-13 00:11:13 by magnolia>
+// Time-stamp: <Last changed 2026-05-25 12:22:43 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -41,13 +41,14 @@ typedef TecDaemon* TecDaemonPtr;
 typedef struct tagTecService TecService;
 typedef TecService* TecServicePtr;
 
+// TecService = 32 bytes.
 typedef struct tagTecService {
     // A pointer to the owning Daemon object (may be NULL).
     TecDaemonPtr owner;
     // Starts the service and signals completion.
     // In long-running services like TCP servers, this function may not return
     // until `shutdown` is invoked from another thread.
-    void (*start)(TecServicePtr, TecSignalPtr, int*);
+    void (*start)(TecServicePtr, TecSignalPtr, int* error);
     // Stops the service and signals termination.
     void (*shutdown)(TecServicePtr, TecSignalPtr);
     // Destructor.

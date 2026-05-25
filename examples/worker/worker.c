@@ -1,4 +1,10 @@
-// Time-stamp: <Last changed 2026-05-09 10:55:38 by magnolia>
+// Time-stamp: <Last changed 2026-05-25 14:42:12 by magnolia>
+/*======================================================================
+*
+*             Worker proceses different messages.
+*
+ *====================================================================*/
+
 
 #include <stdio.h>
 
@@ -59,7 +65,7 @@ int main(void) {
     /* TecWorker_set_on_init(&w, on_init); */
     TecWorker_set_on_exit(&w, on_exit);
 
-    // RUNS THE WORKER USING DAEMON INTERFACE.
+    // RUN THE WORKER USING DAEMON INTERFACE.
     int error = TecDaemon_run(&w);
     if (error) {
         TecDaemon_done(&w);

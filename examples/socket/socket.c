@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-04-29 10:51:56 by magnolia>
+// Time-stamp: <Last changed 2026-05-25 14:35:58 by magnolia>
 /*======================================================================
 *
-*   A minimum TCP client using TecSocket API.
+*   A minimal TCP client using TecSocket API.
 *
 *   Sends a string to the appropriate TCP server
 *   (e.g. `ncat -lk[6] localhost 4321` can be used as a server).

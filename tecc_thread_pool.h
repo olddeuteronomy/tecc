@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 15:50:03 by magnolia>
+// Time-stamp: <Last changed 2026-05-25 12:17:00 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -44,7 +44,7 @@ extern "C" {
 typedef struct tagTecTaskNode TecTaskNode;
 typedef TecTaskNode* TecTaskNodePtr;
 
-// A function executed by a thread from the pool.
+// Function executed by a thread from the pool.
 typedef void (*TecTaskFunc)(void* payload, TecBuffer buf, void* args);
 
 // Thread pool = 56 bytes.
@@ -59,9 +59,9 @@ typedef struct tagTecThrPool {
 } TecThrPool;
 typedef TecThrPool* TecThrPoolPtr;
 
-// A task to be enqueued to the pool for execution. 48 bytes.
+// Task to be enqueued to the pool for execution. 48 bytes.
 typedef struct tagTecTask {
-    TecArenaElem hdr;        // Indicates that this object may be allocated at the arena.
+    TecArenaElem hdr;        // Indicates that this object may be allocated from the arena.
     char* buffer;            // Task buffer assigned by ThrPool; may be NULL.
     size_t buffer_size;      // Size of per-thread buffer.
     void* payload;           // Preallocated payload assigned by ThrPool; may be NULL.
@@ -84,10 +84,11 @@ TECC_API void TecThrPool_init(TecThrPoolPtr self,
 
 TECC_API void TecThrPool_done(TecThrPoolPtr);
 
-//
+// Start up all threads.
+// Must be called *after* `TecThrPool_init` and *before* `TecThrPool_enqueue`.
 TECC_API bool TecThrPool_run(TecThrPoolPtr);
 
-// Creates a task and enqueues it to the pool for execution.
+// Create a task and enqueues it to the pool for execution.
 TECC_API void TecThrPool_enqueue(TecThrPoolPtr self,
                                  TecTaskFunc task_func,
                                  void* payload, void* args);

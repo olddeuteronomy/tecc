@@ -1,4 +1,9 @@
-// Time-stamp: <Last changed 2026-05-11 00:59:14 by magnolia>
+// Time-stamp: <Last changed 2026-05-25 14:35:04 by magnolia>
+/*======================================================================
+*
+*                  A single-threaded TCP server.
+*
+ *====================================================================*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,11 +35,10 @@ static void parse_args(int argc, char* argv[], TecSocketParamsPtr params) {
     }
 }
 
-
-// Process client connection.
-
+// Using the single-threaded server we can reuse the same input buffer.
 static TecBuffer data;
 
+// Process client connection.
 static int process_str(TecSocketPtr sock, void* arg) {
     (void)arg;
     TECC_TRACE_ENTER("process_str");
@@ -60,20 +64,23 @@ int main(int argc, char* argv[]) {
     // Allocate incoming data buffer.
     TecBuffer_init(&data, 1024, 1024);
 
+    // Initialize socket parameters.
     TecSocketParams socket_params;
     TecSocketParams_init(&socket_params);
     socket_params.addr = kTecAnyAddr; // Accept connection from any IPv4 address.
     parse_args(argc, argv, &socket_params);
 
+    // Initialize the server.
     TecTCPServer server;
     TecTCPServer_init(&server, &socket_params);
     // Incoming connection processor.
     TecTCPServer_set_client_proc(&server, process_str);
 
+    // Initialize ServiceWorker.
     TecServiceWorker service_worker;
     TecServiceWorker_init(&service_worker, &server, 1);
 
-    // Start the server via ServiceWorker using Daemon API.
+    // Start up the server via ServiceWorker using Daemon API.
     int error = TecDaemon_run(&service_worker);
     if (!error) {
         // Wait until quit signalled...

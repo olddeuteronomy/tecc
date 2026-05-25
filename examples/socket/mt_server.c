@@ -1,7 +1,7 @@
-// Time-stamp: <Last changed 2026-05-13 10:41:03 by magnolia>
+// Time-stamp: <Last changed 2026-05-25 14:44:23 by magnolia>
 /*======================================================================
 *
-* Construct and run multi-threaded TCP server with arena allocator.
+* Constructing and running multi-threaded TCP server with arena allocator.
 *
  *====================================================================*/
 
@@ -41,7 +41,7 @@ static void parse_args(int argc, char* argv[], TecSocketParamsPtr params) {
 // Process client connection.
 static int process_data(TecSocketPtr sock, void* arg) {
     (void)arg;
-    TECC_TRACE_ENTER("process_str");
+    TECC_TRACE_ENTER("process_data");
     TecBuffer data = TecBuffer_create(1024);
     int err = TecSocket_read(sock, &data);
     if (!err) {
@@ -68,11 +68,11 @@ int main(int argc, char* argv[]) {
     socket_params.addr = kTecAnyAddrIP6;
     parse_args(argc, argv, &socket_params);
 
-    // Create a thread pool for handling incoming connections concurently:
-    // 8 threads,
-    // 8 arena-preallocated buffers,
-    // Payload: TecSocket allocated using internal arena when possible,
-    // 32 arena-preallocated socket slots per thread.
+    // Create a thread pool to handle incoming connections concurently:
+    // 8 threads;
+    // 8 arena-preallocated IO buffers;
+    // Payload: TecSocket objects are allocated from the internal arena when possible;
+    // 32 arena-preallocated task slots per thread.
     TecThrPool thread_pool;
     TecThrPool_init(&thread_pool, 8, socket_params.buffer_size,
                     sizeof(TecSocket), 32);
@@ -83,14 +83,14 @@ int main(int argc, char* argv[]) {
     TecTCPServer_init(&server, &socket_params);
     // Attach the thread pool.
     TecTCPServer_use_thread_pool(&server, &thread_pool);
-    // Incoming connection processor.
+    // Setup incoming connections handler.
     TecTCPServer_set_client_proc(&server, process_data);
 
     // Initialize the service worker that runs the server in the dedicated thread.
     TecServiceWorker service_worker;
     TecServiceWorker_init(&service_worker, &server, 1);
 
-    // Start the server via ServiceWorker using Daemon API.
+    // Start up the server via service worker using Daemon API.
     int error = TecDaemon_run(&service_worker);
     if (!error) {
         // Wait until `quit` signalled...

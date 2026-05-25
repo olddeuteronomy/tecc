@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-15 12:49:24 by magnolia>
+// Time-stamp: <Last changed 2026-05-17 01:05:58 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -377,15 +377,13 @@ TECC_IMPL int TecSocket_read(TecSocketPtr sock, TecBufferPtr dst) {
     char* buffer = sock->buf.data;
     size_t buffer_size = sock->buf.capacity;
     int err = 0;
-    // Read data from the socket.
     do {
         received = read(sock->fd, buffer, buffer_size);
         if (received > 0) {
             TecBuffer_write(dst, buffer, received);
             TECC_TRACE("%s:%d --> RECV %zd bytes.\n", sock->addr, sock->port, received);
         }
-    } while (received);
-    // Check for errors.
+    } while (received > 0);
     if (received == 0) {
         TECC_TRACE("%s:%d Peer closed the connection.\n", sock->addr, sock->port);
     }
@@ -404,10 +402,8 @@ TECC_IMPL int TecSocket_write(TecSocketPtr sock, TecBufferPtr src) {
     TECC_TRACE_ENTER("Socket::write()");
     ssize_t sent = 0;
     int err = 0;
-    // Write data to the socket.
     if (src->size) {
         sent = write(sock->fd, src->data, src->size);
-        // Check for errors.
         if (sent < 0) {
             err = errno;
             TECC_TRACE("!!! %s:%d Write error %d.\n", sock->addr, sock->port, err);

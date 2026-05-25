@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 14:44:15 by magnolia>
+// Time-stamp: <Last changed 2026-05-25 12:20:05 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -21,14 +21,15 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 
 /*======================================================================
 *
-*    ServiceWorker combines a service and a worker,
-*    running the service in a dedicated thread.
+*    ServiceWorker combines a service and a worker which runs
+*    the service in a dedicated thread.
 *
  *====================================================================*/
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
 #include "tecc/tecc_threads.h"
 #include "tecc/tecc_signal.h"
+#include "tecc/tecc_service.h"
 #include "tecc/tecc_worker.h"
 
 #ifdef __cplusplus

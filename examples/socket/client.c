@@ -1,4 +1,9 @@
-// Time-stamp: <Last changed 2026-05-05 02:58:32 by magnolia>
+// Time-stamp: <Last changed 2026-05-25 14:29:57 by magnolia>
+/*======================================================================
+*
+*             A TPC client using TecService API.
+*
+ *====================================================================*/
 
 #include <stdlib.h>
 
@@ -42,24 +47,28 @@ int main(int argc, char* argv[]) {
     TecSignal sig_stopped;
     TecSignal_init(&sig_stopped);
 
+    // Initialize socket parameters.
     TecSocketParams socket_params;
     TecSocketParams_init(&socket_params);
     parse_args(argc, argv, &socket_params);
 
+    // Initialize the client.
     TecTCPClient cli;
     TecTCPClient_init(&cli, &socket_params);
 
+    // Start up the client.
     int error = 0;
     TecService_start(&cli, &sig_started, &error);
     TecSignal_wait(&sig_started);
 
     if (!error) {
+        // Send a string to the server.
         error = test(&cli);
         TecService_shutdown(&cli, &sig_stopped);
         TecSignal_wait(&sig_stopped);
     }
 
-    // Cleanup.
+    // Clean up.
     TecSignal_done(&sig_stopped);
     TecSignal_done(&sig_started);
     TecSocketParams_done(&socket_params);

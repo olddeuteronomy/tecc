@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-09 14:25:24 by magnolia>
+// Time-stamp: <Last changed 2026-05-25 14:51:15 by magnolia>
 /*======================================================================
 *
 * An example of using RPC‑style request/reply via the daemon interface
@@ -68,7 +68,7 @@ static void query_gauge(GAUGE_ID id, TecDaemonPtr d) {
     TECC_TRACE_EXIT();
 }
 
-// RUN THE SERVICE WORKER USING THE DAEMON INTERFACE.
+// RUN THE WORKER USING THE DAEMON INTERFACE.
 static int run(TecDaemonPtr d) {
     TECC_TRACE_ENTER("run()");
     int error = TecDaemon_run(d);
@@ -77,7 +77,7 @@ static int run(TecDaemonPtr d) {
         TECC_TRACE_EXIT();
         return error;
     }
-    // Waits until the service worker is running.
+    // Wait until the worker is running.
     TecDaemon_wait_until_running(d);
 
     // Query gauges.
@@ -96,11 +96,11 @@ int main(void) {
     TecWorker_init(&w, 1);
     TecWorker_register(&w, GaugeRequest, on_gauge_request);
 
-    // RUN THE SERVICE WORKER USING THE DAEMON INTERFACE.
-    int error = run(TecDaemon_ptr(&w));
+    // RUN THE WORKER USING THE DAEMON INTERFACE.
+    run(TecDaemon_ptr(&w));
 
-    // Terminates the worker.
-    error = TecDaemon_terminate(&w);
+    // Terminate the worker.
+    int error = TecDaemon_terminate(&w);
     // Waits until the worker has terminated.
     TecDaemon_wait_until_terminated(&w);
 

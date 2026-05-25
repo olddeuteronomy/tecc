@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 12:47:28 by magnolia>
+// Time-stamp: <Last changed 2026-05-18 12:49:52 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -79,6 +79,7 @@ typedef TecThread* TecThreadPtr;
 *                            TecMutex
 *
  *====================================================================*/
+// 48 bytes.
 typedef struct tagTecMutex {
     int result; // 0 == OK.
     TecMutexType m;
@@ -93,6 +94,7 @@ typedef TecMutex* TecMutexPtr;
 *                            TecCV
 *
  *====================================================================*/
+// 56 bytes.
 typedef struct tagTecCV {
     int result;  // 0 == OK.
     TecCVType c;

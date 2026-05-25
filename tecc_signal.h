@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 14:57:39 by magnolia>
+// Time-stamp: <Last changed 2026-05-25 12:24:56 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -22,7 +22,7 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 /*======================================================================
 *
 *     A thread‑safe signal object that blocks callers
-*     until its internal atomic_int becomes 1.
+*     until its internal `atomic_int` becomes 1.
 *
  *====================================================================*/
 

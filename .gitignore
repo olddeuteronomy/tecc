@@ -6,5 +6,9 @@ build/
 # MacOS Cache
 .DS_Store
 
+# Config
+.clangd
+
 # Development
 README.md
+doc/
