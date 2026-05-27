@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-15 12:19:22 by mac>
+// Time-stamp: <Last changed 2026-05-26 12:47:16 by magnolia>
 /*======================================================================
 *
 *  A simple single-threaded TCP server using the "pure" TecSocket API.
@@ -10,9 +10,9 @@
 #include <stdatomic.h>
 #include <signal.h>
 
+#include "tecc/tecc_trace.h"  // Pragma IWYU: keep
 #include "tecc/tecc_buffer.h"
 #include "tecc/tecc_socket.h"
-#include "tecc/tecc_trace.h"
 
 
 volatile atomic_bool running = true;

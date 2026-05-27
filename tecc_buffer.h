@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 14:23:54 by magnolia>
+// Time-stamp: <Last changed 2026-05-26 14:52:06 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -23,7 +23,6 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 *       An expandable byte buffer, mimicking file operations.
 *       Provides a growable in-memory buffer with an API similar to
 *       stdio FILE streams (read, write, seek, tell, etc.).
-*       The internal storage is automatically expanded as needed.
  *====================================================================*/
 
 #include <stddef.h>
@@ -71,7 +70,7 @@ TECC_API TecBuffer TecBuffer_create_(size_t initial_size, size_t block_size);
 
 #define TecBuffer_create(...) TECC_GET_MACRO_2(__VA_ARGS__, TecBuffer_create2, TecBuffer_create1, TecBuffer_create0)(__VA_ARGS__)
 
-// Initialize the buffer inplace.
+// Initializes the buffer inplace.
 // `initial_size` can be 0, no allocation occurs in this case.
 // If `block_size` is 0, TECC_BUFFER_BLOCK_SIZE will be used.
 TECC_API void TecBuffer_init_(TecBufferPtr buf, size_t initial_size, size_t block_size);
@@ -94,7 +93,7 @@ TECC_API size_t TecBuffer_write(TecBufferPtr buf, const void *src, size_t len);
 
 // Read `len` bytes from the buffer, starting at the current `pos`.
 // On success, `pos` is advanced by the number of bytes read successfully
-// Returns the number of bytes read successfully, which may be less than `len`.
+// Returns the number of bytes read successfully.
 TECC_API size_t TecBuffer_read(TecBufferPtr buf, void* dst, size_t len);
 
 // Returns the current position indicator (mimicking `ftell`).
@@ -106,8 +105,7 @@ TECC_API size_t TecBuffer_read(TecBufferPtr buf, void* dst, size_t len);
 // Returns the size of the buffer.
 #define TecBuffer_size(buf) (TecBuffer_ptr(buf)->size)
 
-// Get a read-only view of the internal buffer.
-// Returns a const pointer to buffer data. May be NULL.
+// Returns a const pointer to the buffer's data. May be NULL.
 #define TecBuffer_data(buf) ((const char*)(TecBuffer_ptr(buf)->data))
 
 // Resets the buffer position indicator. Returns TECC_EOB (-1) if out of bound.

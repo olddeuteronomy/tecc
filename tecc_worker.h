@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 16:06:51 by magnolia>
+// Time-stamp: <Last changed 2026-05-26 16:09:55 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -52,6 +52,7 @@ typedef int (*TecWorkerFunc)(TecWorkerPtr);
 
 // Inherited from TecDaemon, see `tecc_daemon.h`. 560 bytes.
 typedef struct tagTecWorker {
+    // The parent object.
     TecDaemon daemon;
     // Parameters.
     size_t hash_table_size; //

@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 13:16:42 by magnolia>
+// Time-stamp: <Last changed 2026-05-26 14:46:19 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -53,9 +53,9 @@ typedef TecArenaFreeNode* TecArenaFreeNodePtr;
 // 88 bytes.
 typedef struct tagTecArena {
     char* buf;                // Preallocated arena buffer.
-    size_t elem_size;         // Size of object to be allocated.
+    size_t elem_size;         // Size of the object to be allocated, in bytes.
     size_t capacity;          // Arena capacity.
-    atomic_size_t allocated;  // Count of allocated object at arena.
+    atomic_size_t allocated;  // Number of currently allocated objects in the arena.
     TecArenaFreeNodePtr free_list;
     TecMutex lock;
 } TecArena;
@@ -64,7 +64,9 @@ typedef TecArena* TecArenaPtr;
 TECC_API bool TecArena_init(TecArenaPtr arena, size_t nelems, size_t elem_size);
 TECC_API void TecArena_done(TecArenaPtr arena);
 
+// Returns an object inherited from TecArenaElem.
 TECC_API void* TecArena_allocate(TecArenaPtr arena);
+
 TECC_API void TecArena_release(TecArenaPtr arena, TecArenaElemPtr elem);
 
 

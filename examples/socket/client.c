@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-25 14:29:57 by magnolia>
+// Time-stamp: <Last changed 2026-05-26 12:50:00 by magnolia>
 /*======================================================================
 *
 *             A TPC client using TecService API.
@@ -7,7 +7,7 @@
 
 #include <stdlib.h>
 
-#include "tecc/tecc_trace.h" // IWYU pragma: keep
+#include "tecc/tecc_trace.h"  // IWYU pragma: keep
 #include "tecc/tecc_tcp_client.h"
 
 

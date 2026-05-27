@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-25 14:44:23 by magnolia>
+// Time-stamp: <Last changed 2026-05-26 12:57:19 by magnolia>
 /*======================================================================
 *
 * Constructing and running multi-threaded TCP server with arena allocator.
@@ -6,7 +6,6 @@
  *====================================================================*/
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <signal.h>
 
 #include "tecc/tecc_def.h"    // IWYU pragma: keep

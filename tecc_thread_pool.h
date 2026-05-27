@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-25 12:17:00 by magnolia>
+// Time-stamp: <Last changed 2026-05-26 16:05:29 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -22,10 +22,7 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 /*======================================================================
 *
 * A simple round‑robin thread pool. Tasks consist of a function,
-* payload, and buffer, all allocated from the pool’s internal arena.
-* Worker threads are selected in round‑robin order, providing
-* predictable scheduling with minimal synchronization and
-* no per‑task heap allocation.
+* payload, and buffer, all allocated from the pool's internal arena.
 *
  *====================================================================*/
 
@@ -84,11 +81,11 @@ TECC_API void TecThrPool_init(TecThrPoolPtr self,
 
 TECC_API void TecThrPool_done(TecThrPoolPtr);
 
-// Start up all threads.
+// Starts up all threads.
 // Must be called *after* `TecThrPool_init` and *before* `TecThrPool_enqueue`.
 TECC_API bool TecThrPool_run(TecThrPoolPtr);
 
-// Create a task and enqueues it to the pool for execution.
+// Creates a task and enqueues it to the pool for execution.
 TECC_API void TecThrPool_enqueue(TecThrPoolPtr self,
                                  TecTaskFunc task_func,
                                  void* payload, void* args);

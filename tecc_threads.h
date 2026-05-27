@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-18 12:49:52 by magnolia>
+// Time-stamp: <Last changed 2026-05-26 16:06:29 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -23,7 +23,7 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 *
 * A cross‑platform threading layer that abstracts
 * both the C standard <threads.h> API and the POSIX <pthread.h> API
-* behind a single, uniform interface.
+* behind a single interface.
 *
  *====================================================================*/
 
@@ -166,13 +166,11 @@ typedef TecCV* TecCVPtr;
 #define TecThread_init(self) do { (self)->result = thrd_error; } while(0)
 
 #define TecThread_create(self, func, arg) do {\
-        (self)->result = thrd_create(&(self)->t, (func), (arg));\
-    } while(0)
+        (self)->result = thrd_create(&(self)->t, (func), (arg)); } while(0)
 
 #define TecThread_join(self) do {\
         if (TecThread_ok(self)) { thrd_join((self)->t, &((self)->result));\
-            (self)->result = 22; }\                                                               \
-    } while(0)
+            (self)->result = 22; } } while(0)
 
 /*======================================================================
 *

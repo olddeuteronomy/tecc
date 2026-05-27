@@ -10,5 +10,4 @@ build/
 .clangd
 
 # Development
-README.md
 doc/

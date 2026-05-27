@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 12:13:11 by magnolia>
+// Time-stamp: <Last changed 2026-05-26 15:04:39 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -31,15 +31,16 @@ extern "C" {
 
 /*======================================================================
 *
-*      Asynchronous, thread-safe TCP client implemented as Service
+*               TCP client implemented as Service
 *
  *====================================================================*/
 
 typedef struct tagTecTCPClient TecTCPClient;
 typedef TecTCPClient* TecTCPClientPtr;
 
+// 296 bytes.
 typedef struct tagTecTCPClient {
-    TecService service;
+    TecService service; // Parent object.
     TecSocketParamsPtr socket_params;
     TecSocket sock;
     TecBuffer buffer;
