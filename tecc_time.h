@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-15 09:26:12 by magnolia>
+// Time-stamp: <Last changed 2026-08-10 11:12:28 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -26,7 +26,9 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #    define _DARWIN_C_SOURCE
 #  endif
 #elif defined(__unix) || defined(__linux)
-#  define _POSIX_C_SOURCE 200809L
+#  ifndef _POSIX_C_SOURCE
+#    define _POSIX_C_SOURCE 200809L
+#  endif
 #elif defined(_WIN64) || defined(_WIN32)
 #  define USE_GMTIME_S 1
 #else
