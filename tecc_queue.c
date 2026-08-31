@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-12 12:13:11 by magnolia>
+// Time-stamp: <Last changed 2026-08-19 14:12:32 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -17,11 +17,10 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 #include <stdbool.h>
-#include <stdlib.h>
+#include <malloc.h>
 
 #include "tecc/tecc_def.h" // IWYU pragma: keep
 #include "tecc/tecc_memory.h"
-#include "tecc/tecc_signal.h"
 #include "tecc/tecc_queue.h"
 
 

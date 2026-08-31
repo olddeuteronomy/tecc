@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-08-10 11:12:28 by magnolia>
+// Time-stamp: <Last changed 2026-08-21 15:38:09 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -25,7 +25,7 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #  ifndef _DARWIN_C_SOURCE
 #    define _DARWIN_C_SOURCE
 #  endif
-#elif defined(__unix) || defined(__linux)
+#elif defined(__unix__) || defined(__linux)
 #  ifndef _POSIX_C_SOURCE
 #    define _POSIX_C_SOURCE 200809L
 #  endif
@@ -48,7 +48,7 @@ extern "C" {
 typedef long long TecTimePoint;
 
 // Converting to nanoseconds.
-#define MICROSECS(us) ((TecTimePoint)(ms  * 1000LL))
+#define MICROSECS(us) ((TecTimePoint)(us  * 1000LL))
 #define MILLISECS(ms) ((TecTimePoint)(ms  * 1000000LL))
 #define SECONDS(sec)  ((TecTimePoint)(sec * 1000000000LL))
 #define MINUTES(m)    (60LL * SECONDS(m))

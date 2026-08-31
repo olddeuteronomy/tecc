@@ -1,4 +1,4 @@
-# Time-stamp: <Last changed 2026-05-26 13:00:29 by magnolia>
+# Time-stamp: <Last changed 2026-08-31 15:29:30 by magnolia>
 
 UNAME_S := $(shell uname -s)
 
@@ -13,9 +13,7 @@ OUTDIR := $(BUILDDIR)$(TARGET)
 LIBS := -L$(LIBDIR) -l$(LIBTECC)
 
 ifndef NO_PTHREAD
-ifeq ($(UNAME_S),Linux)
 	LIBS += -lpthread
-endif
 endif
 
 # Source and object files.

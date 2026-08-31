@@ -20,7 +20,7 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 // gmtime_r trick
 #if defined(__APPLE__)
   #define _DARWIN_C_SOURCE
-#elif defined(__unix) || defined(__linux)
+#elif defined(__unix__) || defined(__linux)
 #  ifndef _POSIX_C_SOURCE
 #    define _POSIX_C_SOURCE 200809L
 #  endif

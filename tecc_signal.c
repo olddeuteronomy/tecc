@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-05-25 12:28:20 by magnolia>
+// Time-stamp: <Last changed 2026-08-19 14:18:13 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -16,7 +16,7 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
    limitations under the License.
 ------------------------------------------------------------------------
 ----------------------------------------------------------------------*/
-#include <errno.h>
+#include <errno.h> // IWYU pragma: keep
 #include <stdbool.h>
 
 #include "tecc/tecc_def.h"

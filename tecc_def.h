@@ -1,3 +1,4 @@
+// Time-stamp: <Last changed 2026-08-31 15:25:44 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -29,6 +30,9 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 // Check for Unix
 #if defined(unix) || defined(__unix) || defined(__unix__)
 #  define TEC_OS_UNIX_ 1
+#  if defined(__NetBSD__)
+#     define TECC_OS_NETBSD 1
+#  endif
 #endif
 
 // Check for MS Windows
