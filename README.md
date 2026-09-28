@@ -30,12 +30,12 @@ $HOME
   |
   |+--lib
   |   +--tecc
-  |      +--<linux|darwin|netbsd>
+  |      +--linux|darwin|netbsd
   |          +--debug
   |          +--release
   |+--bin
   |   +--tecc
-  |      +--<linux|darwin|netbsd>
+  |      +--linux|darwin|netbsd
   |          +--debug
   |          +--release
 </pre>
