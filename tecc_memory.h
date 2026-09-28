@@ -1,4 +1,4 @@
-// Time-stamp: <Last changed 2026-09-28 14:45:09 by mac>
+// Time-stamp: <Last changed 2026-09-28 14:59:18 by magnolia>
 /*----------------------------------------------------------------------
 ------------------------------------------------------------------------
 Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
@@ -20,8 +20,7 @@ Copyright (c) 2026 The Emacs Cat (https://github.com/olddeuteronomy/tecc).
 #ifndef TECC_MEMORY_H
 #define TECC_MEMORY_H
 
-#include <stdlib.h>
-
+#include <stdlib.h> // IWYU pragma: keep
 #include "tecc/tecc_def.h" // IWYU pragma: keep
 
 #ifdef __cplusplus
