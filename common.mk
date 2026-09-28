@@ -1,12 +1,30 @@
-# Time-stamp: <Last changed 2026-05-09 14:56:48 by magnolia>
+# Time-stamp: <Last changed 2026-09-03 14:54:51 by magnolia>
+
+PROJECT_NAME := tecc
+PROJECT_ROOT := $(HOME)
+LIBNAME := lib$(PROJECT_NAME)
+
+########################################################################
+#                Platform depending settings
+########################################################################
+
+# Get lower-case kernel name
+detected_OS := $(shell uname -s | tr A-Z a-z)
+ifeq ($(detected_OS),smolbsd)
+	detected_OS = "netbsd"
+endif
+
+MKDIR_P := mkdir -p
+LIBSUFFIX := .a
+
+########################################################################
+#                     Compiler flags
+########################################################################
 
 ifndef CC_STD
 CC_STD := c17
 endif
 
-########################################################################
-#                     Compiler flags
-########################################################################
 DEPS := -MMD -MP
 CFLAGS := -std=$(CC_STD) -Wall -Wextra -Werror $(DEPS)
 
@@ -18,21 +36,11 @@ ifdef NO_PTHREAD
 CFLAGS += -DTECC_NO_PTHREAD=1
 endif
 
-########################################################################
-#                Platform depending settings
-########################################################################
-ifeq ($(detected_OS),Windows)
-MKDIR_P := MKDIR
-LIBSUFFIX := .lib
-else
-MKDIR_P := mkdir -p
-LIBSUFFIX := .a
-endif
 
 ########################################################################
 #        Target paths depending on build configuration
 ########################################################################
-TARGET :=
+TARGET := $(detected_OS)
 
 ifdef REL
 CFLAGS += -O2
@@ -46,10 +54,12 @@ endif
 ifdef CLANG
 CC := clang
 CFLAGS += -fcolor-diagnostics
-TARGET := $(TARGET)/clang
 else
 # `gcc' by default
 CC := gcc
 CFLAGS += -fdiagnostics-color=always
-TARGET := $(TARGET)/gcc
 endif
+
+LIBDIR := $(PROJECT_ROOT)/lib/$(PROJECT_NAME)/$(TARGET)
+LIBPATH := $(LIBDIR)/$(LIBNAME)$(LIBSUFFIX)
+BINDIR := $(PROJECT_ROOT)/bin/$(PROJECT_NAME)/$(TARGET)

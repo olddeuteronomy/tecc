@@ -1,16 +1,12 @@
-# Time-stamp: <Last changed 2026-08-31 15:29:30 by magnolia>
-
-UNAME_S := $(shell uname -s)
+# Time-stamp: <Last changed 2026-09-03 15:07:02 by magnolia>
+# `tecc/common.mk' should be included _before_ this file.
 
 TECCDIR := ../..
-BUILDDIR:= $(TECCDIR)/build
-LIBTECC := tecc
 
 INCLUDES := -I$(TECCDIR)/..
-LIBDIR := $(TECCDIR)/lib$(TARGET)
-OUTDIR := $(BUILDDIR)$(TARGET)
+OUTDIR := $(BINDIR)
 
-LIBS := -L$(LIBDIR) -l$(LIBTECC)
+LIBS := -L$(LIBDIR) -l$(PROJECT_NAME)
 
 ifndef NO_PTHREAD
 	LIBS += -lpthread

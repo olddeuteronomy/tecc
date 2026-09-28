@@ -1,0 +1,117 @@
+# ----------------------------------------------------------
+# NetBSD development shell with Emacs included.
+# Time-stamp: <Last changed 2026-09-22 13:46:56 by magnolia>
+# ----------------------------------------------------------
+
+# Disable: unusual "FROM" naming, multiple RUN don't matter, and non-JSON CMD
+# hadolint global ignore=DL3006,DL3025,DL3059
+
+# `base' -- The core system. Contains the essential binaries, shared libraries,
+# and utilities required for a minimally functional NetBSD system.
+# This set is mandatory.
+
+# `etc' -- System configuration files (primarily under /etc and a few other places).
+# Needed for a complete install from scratch;
+# provides the default configuration skeleton.
+
+# `comp' -- Compiler/toolchain set. Includes compilers (C/C++),
+# header files (/usr/include), static libraries, linker, make,
+# and related development tools.
+
+FROM base,etc,comp
+
+# Mandatory -- a name of the service
+LABEL smolbsd.service="devsh"
+
+# Shrink the final image to only needed content + extra NNN MB
+LABEL smolbsd.minimize=+512
+# Extra packages
+LABEL smolbsd.addpkgs="pkgin pkg_tarup pkg_install sqlite3 rsync curl"
+# Microvm will use a `pty' as console
+LABEL smolbsd.use_pty="y"
+# 2G disk initially; it will be truncated to minimum + extra NNN MB
+LABEL smolbsd.imgsize=2048
+
+ARG HOSTNAME=bsd
+ARG USERSHELL=/bin/ksh
+ENV USERNAME=magnolia
+
+# Note: INCLUDE is SMOLerfile extension!
+# For interactive shell; provided by smolBSD distribution.
+INCLUDE smolerfiles/usershell.inc
+
+# ====================================
+#               EMACS
+# ====================================
+
+# Create ~/.emacs with minimal tuning.
+RUN <<EOF
+cat > ${HOMEDIR}/.emacs << 'EMACS'
+;;; Minimal Emacs config for NetBSD
+;; Basic settings
+(setq
+  column-number-mode t
+  ring-bell-function 'ignore
+  scroll-step 1
+  scroll-conservatively 100000
+  scroll-preserve-screen-position 1
+  scroll-margin 0
+  mouse-wheel-scroll-amount '(1)
+  mouse-wheel-progressive-speed nil
+  global-visual-line-mode nil
+  show-paren-mode t
+  tab-always-indent 'indent
+  tab-width 4
+  tool-bar-mode nil
+  truncate-lines nil
+  word-wrap t
+  make-backup-files nil
+  auto-save-default nil
+)
+
+;; No line numbers (can be toggled by "C-c l")
+(global-display-line-numbers-mode -1)
+
+(setq-default indent-tabs-mode nil)
+(global-hl-line-mode 1)
+(delete-selection-mode t)
+(desktop-save-mode 1)
+(savehist-mode 1)
+
+;; No menu
+(menu-bar-mode -1)
+
+;; Killing the current Dired buffer upon navigating into a different directory.
+(setq dired-kill-when-opening-new-dired-buffer t)
+
+;; Basic C settings
+(setq c-default-style "stroustrup")
+(setq c-basic-indent 4)
+(setq c-basic-offset 4)
+(c-set-offset 'innamespace 0)
+(c-set-offset 'inextern-lang 0)
+
+;; Some useful keybindings
+(define-key global-map (kbd "RET") #'newline-and-indent)
+(global-set-key (kbd "M-o") #'other-window)
+(global-set-key (kbd "M-a") #'beginning-of-line) ; QEMU intercepts "C-a"
+(global-set-key (kbd "M-e") #'end-of-line) ; For consistency
+(global-set-key (kbd "C-c l") #'display-line-numbers-mode)
+EMACS
+chown ${USERNAME} ${HOMEDIR}/.emacs
+chmod 600 ${HOMEDIR}/.emacs
+EOF
+
+# To use Emacs keys in the shell
+RUN echo 'set -o emacs' > /etc/shrc
+
+RUN echo 'alias ll="ls -la"' >> /etc/shrc
+
+# Install Emacs
+RUN pkgin up && pkgin -y in emacs-nox11
+
+# Install GNU make; we will use it instead of default `bsdmake'
+RUN pkgin -y in gmake
+
+# Login to `ksh', the default shell on NetBSD
+CMD login -f -p $USERNAME

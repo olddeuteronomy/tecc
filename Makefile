@@ -1,19 +1,13 @@
-# Time-stamp: <Last changed 2026-04-20 03:08:37 by magnolia>
+# Time-stamp: <Last changed 2026-09-03 14:57:19 by magnolia>
 
 include common.mk
-
-# Library name
-LIBNAME := libtecc
-
-# Directories
-LIBDIR := lib
 
 ########################################################################
 #                   Making the library
 ########################################################################
 
-LIBDIR := $(LIBDIR)$(TARGET)
-LIBPATH := $(LIBDIR)/$(LIBNAME)$(LIBSUFFIX)
+# LIBDIR := $(LIBDIR)/$(TARGET)
+# LIBPATH := $(LIBDIR)/$(LIBNAME)$(LIBSUFFIX)
 LIBINCLUDES := -I..
 
 # Source and object files
@@ -37,7 +31,7 @@ $(LIBDIR)/%.o: %.c | $(LIBDIR)
 
 # Create directories if missing
 $(LIBDIR):
-	mkdir -p $(LIBDIR)
+	$(MKDIR_P) $(LIBDIR)
 
 # Cleanup
 clean:

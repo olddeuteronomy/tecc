@@ -2,21 +2,20 @@
 # TECC
 
 The TECC library provides portable components for C11, C17, and C23,
-designed for use in concurrent environments.
+designed for use in concurrent environments. Supported platforms are
+GNU/Linux, macOS, and NetBSD (since v.0.28).
 
 TECC can be configured to use either the POSIX `<pthread.h>` API
-(default on Linux and macOS) or the standard C `<threads.h>` API (C11 and
-later), selectable at compile time.
+(default) or the standard C `<threads.h>` API, selectable at compile time.
 
-TECC uses good old Makefiles for building (no CMake or other build
-systems required).
+TECC uses good old Makefiles for building (no CMake or other build systems required).
 
 TECC has no external dependencies.
 
 All provided examples were tested with Valgrind (`valgrind
 --leak-check=full --show-leak-kinds=all`) on Ubuntu 24.04 (gcc 13.3.0, clang 18.1.3) and macOS
 10.14 (clang 11.0.0) -- the latter chosen intentionally old to ensure backward
-compatibility. No memory leaks detected.
+compatibility. No problems detected.
 
 ## Building TECC
 
@@ -24,23 +23,29 @@ TECC can be built with `gcc` (default) or `clang`. From the TECC root directory,
 ```sh
 make -k
 ```
-It creates the following directory structure under the TECC root:
+It creates the following directory structure under the `$HOME` directory:
+
 <pre>
-tecc
-   +--lib
-        +--debug
-               +--gcc
-               +--clang
-        +--release
-               +--gcc
-               +--clang
+$HOME
+  |
+  |+--lib
+  |   +--tecc
+  |      +--<linux|darwin|netbsd>
+  |          +--debug
+  |          +--release
+  |+--bin
+  |   +--tecc
+  |      +--<linux|darwin|netbsd>
+  |          +--debug
+  |          +--release
 </pre>
+
 By default,
 ```sh
 gcc -std=c17 -Wall -Wextra -Werror -MMD -MP -O0 -g
 ```
 is used. It also uses the POSIX `<pthread.h>` API. The resulting static library (`libtecc.a`)
-is placed in the corresponding directory (`lib/debug/gcc` in this case).
+is placed in the corresponding directory (e.g. `$HOME/lib/tecc/linux/debug` if compiled on Linux).
 
 ### Build Options
  * **`CC_STD`**=[c11 | c17 | c23] (default is c17).
@@ -54,14 +59,14 @@ For example,
 make -k CC_STD=c11 CLANG=1 REL=1 NO_PTHREAD=1 rebuild
 ```
 compiles the *release* (`-O2`) library with `clang` using *C11* standard and
-ISO C `<threads.h>`. Tracing is off. The resulting `libtecc.a` is
-placed in `lib/release/clang`.
+ISO C `<threads.h>`. Tracing is off.
 
 ## Examples
 
-The same build rules can be used to compile the examples in the
+The same build rules are used to compile the examples in the
 [`tecc/examples/`](https://github.com/olddeuteronomy/tecc/tree/main/examples)
-directory. The resulting executables are placed in the `tecc/build/` directory.
+directory. The resulting executables are placed in the `$HOME/bin/tecc/<OS>/<debug|release>` directory.
+
 Use
 ```sh
 make -k [options] TRACE_ON=1 all
