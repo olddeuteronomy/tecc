@@ -8,6 +8,7 @@ build/
 
 # Config
 .clangd
+.clang-tidy
 
 # Development
 doc/
